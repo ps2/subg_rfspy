@@ -3,6 +3,7 @@
 #include "hardware.h"
 #include "serial.h"
 #include "commands.h"
+#include "delay.h"
 
 
 void configure_radio()
@@ -52,7 +53,7 @@ volatile uint8_t radio_tx_buf_idx = 0;
 volatile uint8_t __xdata radio_rx_buf[MAX_PACKET_LEN];
 volatile uint8_t radio_rx_buf_len = 0;
 volatile uint8_t packet_count = 1;
-volatile uint8_t overflow_count = 0;
+volatile uint8_t underflow_count = 0;
 
 void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
   uint8_t d_byte;
@@ -83,8 +84,10 @@ void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
       RFD = d_byte;
     } else {
       RFD = 0;
-      overflow_count++;
-      if (overflow_count == 5) {
+      underflow_count++;
+      // We wait a few counts to make sure the radio has sent the last bytes
+      // before turning it off.
+      if (underflow_count == 5) {
         RFST = RFST_SIDLE;
       }
     }
@@ -112,12 +115,12 @@ void rf_isr(void) __interrupt RF_VECTOR {
 
 }
 
-
-void send_packet_from_serial() {
-  volatile uint8_t s_byte;
+void send_packet_from_serial(uint8_t repeat_count, uint16_t repeat_delay) {
+  uint8_t s_byte;
+  
   radio_tx_buf_len = 0;
   radio_tx_buf_idx = 0;
-  overflow_count = 0;
+  underflow_count = 0;
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
@@ -141,6 +144,25 @@ void send_packet_from_serial() {
 
   // wait for sending to finish
   while(MARCSTATE!=MARC_STATE_IDLE);
+
+  while(repeat_count > 0) {
+    // Reset idx to beginning of buffer
+    radio_tx_buf_idx = 0;
+    underflow_count = 0;
+
+    // delay 
+    if (repeat_delay > 0) {
+      delay(repeat_delay);
+    }
+    
+    // Turn on radio (interrupts should start again)
+    RFST = RFST_STX;
+    while(MARCSTATE!=MARC_STATE_TX);
+
+    // wait for sending to finish
+    while(MARCSTATE!=MARC_STATE_IDLE);
+    repeat_count--;
+  }
 }
 
 void get_packet_and_write_to_serial() {

@@ -52,7 +52,11 @@ void get_command() {
 }
 
 void cmd_send_packet() {
-  send_packet_from_serial();    
+  uint8_t repeat_count;
+  uint16_t repeat_delay;
+  repeat_count = serial_rx_byte();
+  repeat_delay = serial_rx_word();
+  send_packet_from_serial(repeat_count, repeat_delay);
   serial_tx_byte(0);
 }
 

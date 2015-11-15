@@ -9,7 +9,8 @@ output:
 output/%.rel : %.c
 	$(CC) $(CFLAGS) -o output/ -c $<
 
-relfiles = output/radio.rel output/serial.rel output/main.rel output/timer.rel output/commands.rel
+relfiles = output/radio.rel output/serial.rel output/main.rel output/timer.rel \
+           output/commands.rel output/delay.rel
 
 output/subg_rfspy.hex: $(relfiles)
 	$(CC) $(LDFLAGS) $(CFLAGS) $(relfiles) -o output/subg_rfspy.hex
