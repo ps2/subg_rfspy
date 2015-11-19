@@ -46,8 +46,9 @@ uint16_t serial_rx_word() {
 }
 
 uint32_t serial_rx_long() {
-  return serial_rx_word() << 16 + serial_rx_word();
+  return ((uint32_t)serial_rx_word() << 16) + serial_rx_word();
 }
+
 
 void flush_serial( ) {
   GREEN_LED ^= 1;
