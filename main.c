@@ -52,6 +52,11 @@ void configureRadio()
 
 int main(void)
 {
+  // init LEDS
+  P0DIR |= 0x03;
+
   configureRadio();
+  GREEN_LED = 0;
+  BLUE_LED = 0;
   return 0;
 }
