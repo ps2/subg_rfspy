@@ -5,7 +5,7 @@ CFLAGS=-I. --verbose
 output:
 	mkdir output
 
-output/main.rel: main.c
+output/main.rel: output main.c
 	$(CC) $(CFLAGS) -c main.c -o output/
 output/subg_rfspy.hex: output/main.rel
 	$(CC) $(CFLAGS) output/main.rel -o output/subg_rfspy.hex

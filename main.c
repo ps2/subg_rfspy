@@ -53,4 +53,5 @@ void configureRadio()
 int main(void)
 {
   configureRadio();
+  return 0;
 }
