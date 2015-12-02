@@ -5,10 +5,14 @@
 #include "ioCCxx10_bitdef.h"
 #endif
 
+// RileyLink HW
+#define GREEN_LED P0_0
+#define BLUE_LED P0_1
+
+
 void configureRadio()
 {
 #ifndef NON_NATIVE_TEST
-
   /* RF settings SoC: CC1110 */
   SYNC1     = 0xFF; // sync word, high byte
   SYNC0     = 0x00; // sync word, low byte
@@ -43,7 +47,7 @@ void configureRadio()
   TEST0     = 0x09; // various test settings
   PA_TABLE0 = 0x00; // needs to be explicitly set!
   PA_TABLE1 = 0x57; // pa power setting 0 dBm
-#endif 
+#endif
 }
 
 int main(void)
