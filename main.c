@@ -9,7 +9,6 @@
 #define GREEN_LED P0_0
 #define BLUE_LED P0_1
 
-
 void configureRadio()
 {
 #ifndef NON_NATIVE_TEST
