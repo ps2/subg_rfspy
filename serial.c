@@ -21,17 +21,6 @@ void configureUART()
   P0SEL &= ~0x3c;
 
   ///////////////////////////////////////////////////////////////
-  // This initial code section ensures that the SoC system clock is driven
-  // by the HS XOSC:
-  // Clear CLKCON.OSC to make the SoC operate on the HS XOSC.
-  // Set CLKCON.TICKSPD/CLKSPD = 000 => system clock speed = HS RCOSC speed.
-  CLKCON &= 0x80;
-  // Monitor CLKCON.OSC to ensure that the HS XOSC is stable and actually
-  // applied as system clock source before continuing code execution
-  while(CLKCON & 0x40);
-  // Set SLEEP.OSC_PD to power down the HS RCOSC.
-  SLEEP |= 0x04;
-  ///////////////////////////////////////////////////////////////
   // Initialize bitrate (U0BAUD.BAUD_M, U0GCR.BAUD_E)
   // Bitrate 19200
   U1BAUD = 163;
