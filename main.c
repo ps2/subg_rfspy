@@ -9,6 +9,40 @@
 #define GREEN_LED P0_0
 #define BLUE_LED P0_1
 
+void configureUART()
+{
+  // UART1 Alt. 2 
+  // P1.4 - CT
+  // P1.5 - RT
+  // P1.6 - TX
+  // P1.7 - RX
+
+  U1CSR |= 0x80; // UART Mode
+  PERCFG |= 0x02; // Alternative 2
+  P1SEL |= 0xf0; // P1.7 -> P1.4
+  P0SEL &= ~0x3c;
+
+  ///////////////////////////////////////////////////////////////
+  // This initial code section ensures that the SoC system clock is driven
+  // by the HS XOSC:
+  // Clear CLKCON.OSC to make the SoC operate on the HS XOSC.
+  // Set CLKCON.TICKSPD/CLKSPD = 000 => system clock speed = HS RCOSC speed.
+  CLKCON &= 0x80;
+  // Monitor CLKCON.OSC to ensure that the HS XOSC is stable and actually
+  // applied as system clock source before continuing code execution
+  while(CLKCON & 0x40);
+  // Set SLEEP.OSC_PD to power down the HS RCOSC.
+  SLEEP |= 0x04;
+  ///////////////////////////////////////////////////////////////
+  // Initialize bitrate (U0BAUD.BAUD_M, U0GCR.BAUD_E)
+  // Bitrate 19200
+  U1BAUD = 163;
+  U1GCR = (U0GCR&~0x1F) | 9; 
+
+  
+  U1UCR |= 0xc0; // Flush, and turn on hw flow control
+}
+
 void configureRadio()
 {
 #ifndef NON_NATIVE_TEST
@@ -53,9 +87,28 @@ int main(void)
 {
   // init LEDS
   P0DIR |= 0x03;
-
-  configureRadio();
   GREEN_LED = 0;
   BLUE_LED = 0;
-  return 0;
+
+  configureRadio();
+  configureUART();
+  GREEN_LED = 0;
+  BLUE_LED = 1;
+  UTX1IF = 0;
+  while(1) {
+    U1DBUF = 0x41; // 'A'
+    //U1DBUF = 0b11110101;
+    while ( !UTX1IF );
+    UTX1IF = 0;
+
+    U1DBUF = 0x42; // 'B'
+    while ( !UTX1IF );
+    UTX1IF = 0;
+
+    U1DBUF = 0x43; // 'C'
+    while ( !UTX1IF );
+    UTX1IF = 0;
+    GREEN_LED = !GREEN_LED;
+    BLUE_LED = !BLUE_LED;
+  }
 }
