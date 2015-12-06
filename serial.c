@@ -7,7 +7,7 @@
 #include "ioCCxx10_bitdef.h"
 #endif
 
-void configureUART()
+void configure_uart()
 {
   // UART1 Alt. 2 
   // P1.4 - CT
@@ -25,41 +25,33 @@ void configureUART()
   // Bitrate 19200
   U1BAUD = 163;
   U1GCR = (U0GCR&~0x1F) | 9; 
-
-  
-  U1UCR |= 0xc0; // Flush, and turn on hw flow control
+U1UCR |= 0xc0; // Flush, and turn on hw flow control
 }
 
 
-void rx() {
+void serial_rx() {
   uint8_t key;
   while(1) {
     U1CSR |= 0x40; URX1IF = 0;
     while(!URX1IF);
     key = U1DBUF;
     if (key == 'a') {
-      GREEN_LED = ! GREEN_LED;
-    }
-  }
+      //GREEN_LED = ! GREEN_LED;
+    } }
 }
 
-void tx() {
+void serial_tx_byte(uint8_t tx_byte) {
   UTX1IF = 0;
-  while(1) {
-    U1DBUF = 0x41; // 'A'
-    //U1DBUF = 0b11110101;
-    while ( !UTX1IF );
-    UTX1IF = 0;
+  U1DBUF = tx_byte;
+  while ( !UTX1IF );
+  UTX1IF = 0;
+  //GREEN_LED = !GREEN_LED;
+}
 
-    U1DBUF = 0x42; // 'B'
-    while ( !UTX1IF );
-    UTX1IF = 0;
-
-    U1DBUF = 0x43; // 'C'
-    while ( !UTX1IF );
-    UTX1IF = 0;
-    GREEN_LED = !GREEN_LED;
-    BLUE_LED = !BLUE_LED;
+void serial_tx_buf(uint8_t *buf, uint8_t len) {
+  uint8_t pos = 0;
+  while(len-->0) {
+    serial_tx_byte(buf[pos++]);
   }
 }
 

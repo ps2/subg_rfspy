@@ -4,7 +4,7 @@
 #include "hardware.h"
 #include "serial.h"
 #include "radio.h"
-#include "interrupts.h"
+#include "timer.h"
 
 #ifndef NON_NATIVE_TEST
 #include <cc1110.h>  // /usr/share/sdcc/include/mcs51/cc1110.h
@@ -12,7 +12,9 @@
 #endif
 
 // SDCC needs prototypes of all ISR functions in main. not sure why, but described in section 3.8.1
-void t1_interrupt(void) __interrupt T1_VECTOR;
+void t1_isr(void) __interrupt T1_VECTOR;
+void rftxrx_isr(void) __interrupt RFTXRX_VECTOR;
+
 
 int main(void)
 {
@@ -28,16 +30,20 @@ int main(void)
 
   // init LEDS
   P0DIR |= 0x03;
-  //GREEN_LED = 0;
-  //BLUE_LED = 0;
+  GREEN_LED = 0;
+  BLUE_LED = 0;
 
   // Global interrupt enable
-  initTimer();
+  init_timer();
   EA = 1;
 
-  configureRadio();
-  configureUART();
+  configure_radio();
+  configure_uart();
 
-  rx();
+  while(1) {
+    get_packet();
+  }
+
   return 0;
 }
+

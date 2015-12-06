@@ -1,6 +1,7 @@
 #ifndef RADIO_H
 #define RADIO_H
 
-void configureRadio();
+void configure_radio();
+void get_packet();
 
 #endif

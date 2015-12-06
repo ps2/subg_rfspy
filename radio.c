@@ -8,7 +8,7 @@
 #include "ioCCxx10_bitdef.h"
 #endif
 
-void configureRadio()
+void configure_radio()
 {
 #ifndef NON_NATIVE_TEST
   /* RF settings SoC: CC1110 */
@@ -45,17 +45,62 @@ void configureRadio()
   TEST0     = 0x09; // various test settings
   PA_TABLE0 = 0x00; // needs to be explicitly set!
   PA_TABLE1 = 0x57; // pa power setting 0 dBm
+
+  IEN2 |= IEN2_RFIE;
+  RFTXRXIE = 1;
 #endif
 }
 
 #define MAX_PACKET_LEN 192
-volatile __xdata uint8_t buf[MAX_PACKET_LEN];
+volatile uint8_t __xdata buf[MAX_PACKET_LEN];
+volatile uint8_t buf_idx = 0;
+volatile uint8_t packet_count = 1;
 
-uint8_t* getPacket() {
-  uint8_t len = 0;
+void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
+  uint8_t d_byte;
+  if (MARCSTATE==MARC_STATE_RX) {
+    d_byte = RFD;
+    if (buf_idx == 0) {
+      buf[0] = RSSI; 
+      buf[1] = packet_count; 
+      packet_count++;
+      buf_idx = 2;
+    }
+    if (packet_count == 0) {
+      packet_count = 1;
+    }
+    buf[buf_idx] = d_byte;
+    buf_idx++;
+    if (d_byte == 0) {
+      RFST = RFST_SIDLE;
+      while(MARCSTATE!=MARC_STATE_IDLE);
+    }
+  }
+}
+
+void get_packet() {
+
+  uint8_t read_idx = 0;
+  uint8_t d_byte = 0;
 
   RFST = RFST_SIDLE;
-  RFST = RFST_SRX;
+  while(MARCSTATE!=MARC_STATE_IDLE);
 
-    
+  RFST = RFST_SRX;
+  while(MARCSTATE!=MARC_STATE_RX);
+
+  while(1) {
+    if (buf_idx > read_idx) {
+      d_byte = buf[read_idx];
+      serial_tx_byte(d_byte);
+      read_idx++;
+      if (read_idx > 1 && read_idx == buf_idx && d_byte == 0) {
+        serial_tx_byte('j');
+        break;
+      }
+    }
+  }
+  buf_idx = 0;
+  GREEN_LED = 1;
 }
+

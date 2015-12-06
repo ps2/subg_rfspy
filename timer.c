@@ -9,7 +9,7 @@
 
 volatile uint8_t timerCounter = 0;
 
-void initTimer() {
+void init_timer() {
    // Configure timer
   T1CTL = 0x0e;  // TickFreq/128, Free Running
   IEN1 |= 0x02;   // Enable Timer 1 interrupts
@@ -25,17 +25,15 @@ void initTimer() {
 
   // Start Timer 1
   //T1CTL = 0x0E;
-  BLUE_LED = 0;
-  GREEN_LED = 0;
 }
 
-void resetTimer() {
+void reset_timer() {
   timerCounter = 0;
 }
 
-void t1_interrupt(void) __interrupt T1_VECTOR
+void t1_isr(void) __interrupt T1_VECTOR
 {
   timerCounter++;
-  GREEN_LED = !GREEN_LED;
+  //GREEN_LED = !GREEN_LED;
 }
 

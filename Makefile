@@ -2,16 +2,18 @@
 default: output/subg_rfspy.hex
 CC=sdcc
 CFLAGS=-I. --verbose -DRILEYLINK
+LDFLAGS=--xram-loc 0xf000 --xram-size 0x1000
 output:
 	mkdir output
 
 output/%.rel : %.c output
 	$(CC) $(CFLAGS) -o output/ -c $<
 
-relfiles = output/radio.rel output/serial.rel output/main.rel output/interrupts.rel
+relfiles = output/radio.rel output/serial.rel output/main.rel output/timer.rel
 
 output/subg_rfspy.hex: $(relfiles)
-	$(CC) $(CFLAGS) $(relfiles) -o output/subg_rfspy.hex
+	$(CC) $(LDFLAGS) $(CFLAGS) $(relfiles) -o output/subg_rfspy.hex
+
 install: output/subg_rfspy.hex
 	cc-tool -n cc1110 --log install.log -ew output/subg_rfspy.hex
 
