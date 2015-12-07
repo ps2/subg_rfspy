@@ -95,7 +95,6 @@ void get_packet() {
       serial_tx_byte(d_byte);
       read_idx++;
       if (read_idx > 1 && read_idx == buf_idx && d_byte == 0) {
-        serial_tx_byte('j');
         break;
       }
     }

@@ -41,7 +41,8 @@ int main(void)
   configure_uart();
 
   while(1) {
-    get_packet();
+    //get_packet();
+    run_command_from_serial();
   }
 
   return 0;
