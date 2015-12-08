@@ -46,6 +46,7 @@ class SerialRL:
       if data == "OK":
         print "RileyLink " + data
         break 
+      print "retry"
  
     while 1:
       self.send_command(CMD_GET_VERSION) 
@@ -53,6 +54,22 @@ class SerialRL:
       if len(data) >= 3:
         print "Version: " + data
         break 
+      print "retry"
+
+def print_packet(p):
+  rssi_dec = p[0]
+  rssi_offset = 73;
+  if rssi_dec >= 128:
+    rssi = (( rssi_dec - 256) / 2) - rssi_offset
+  else:
+    rssi = (rssi_dec / 2) - rssi_offset;
+
+  packet_number = p[1];
+
+  p = p[2:]
+  t = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+  print "%s - (%d) (%d) - %s" % (t,  rssi, packet_number, binascii.hexlify(p))
+  sys.stdout.flush()
 
 
 if len(sys.argv) < 2:
@@ -70,5 +87,6 @@ rl.send_command(CMD_SET_CHANNEL, chr(channel))
 while 1:
   rl.send_command(CMD_GET_PACKET)
   packet = rl.get_response()
-  print datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3] + ": " + binascii.hexlify(packet)
+  if len(packet) > 2:
+    print_packet(packet)
 
