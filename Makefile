@@ -1,12 +1,12 @@
 
-default: output/subg_rfspy.hex
+default: output output/subg_rfspy.hex
 CC=sdcc
 CFLAGS=-I. --verbose -DRILEYLINK
 LDFLAGS=--xram-loc 0xf000 --xram-size 0x1000
 output:
 	mkdir output
 
-output/%.rel : %.c output
+output/%.rel : %.c
 	$(CC) $(CFLAGS) -o output/ -c $<
 
 relfiles = output/radio.rel output/serial.rel output/main.rel output/timer.rel output/commands.rel

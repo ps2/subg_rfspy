@@ -40,7 +40,5 @@ int main(void)
     //get_packet();
     get_command();
   }
-
-  return 0;
 }
 
