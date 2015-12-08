@@ -5,11 +5,7 @@
 #include "serial.h"
 #include "radio.h"
 #include "timer.h"
-
-#ifndef NON_NATIVE_TEST
-#include <cc1110.h>  // /usr/share/sdcc/include/mcs51/cc1110.h
-#include "ioCCxx10_bitdef.h"
-#endif
+#include "commands.h"
 
 // SDCC needs prototypes of all ISR functions in main. not sure why, but described in section 3.8.1
 void t1_isr(void) __interrupt T1_VECTOR;
@@ -42,7 +38,7 @@ int main(void)
 
   while(1) {
     //get_packet();
-    run_command_from_serial();
+    get_command();
   }
 
   return 0;

@@ -2,15 +2,11 @@
 #include <stdint.h>
 #include "hardware.h"
 #include "serial.h"
+#include "commands.h"
 
-#ifndef NON_NATIVE_TEST
-#include <cc1110.h>  // /usr/share/sdcc/include/mcs51/cc1110.h
-#include "ioCCxx10_bitdef.h"
-#endif
 
 void configure_radio()
 {
-#ifndef NON_NATIVE_TEST
   /* RF settings SoC: CC1110 */
   SYNC1     = 0xFF; // sync word, high byte
   SYNC0     = 0x00; // sync word, low byte
@@ -33,8 +29,7 @@ void configure_radio()
   MCSM2     = 0x07;
   MCSM1     = 0x30;
   MCSM0     = 0x18; // main radio control state machine configuration
-  FOCCFG    = 0x17; // frequency offset compensation configuration
-  BSCFG     = 0x6C;
+  FOCCFG    = 0x17; // frequency offset compensation configuration BSCFG     = 0x6C;
   FREND1    = 0x56; // front end tx configuration
   FREND0    = 0x11; // front end tx configuration
   FSCAL3    = 0xE9; // frequency synthesizer calibration
@@ -48,7 +43,6 @@ void configure_radio()
 
   IEN2 |= IEN2_RFIE;
   RFTXRXIE = 1;
-#endif
 }
 
 #define MAX_PACKET_LEN 192
@@ -89,6 +83,10 @@ void get_packet() {
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
 
+  // Waiting for isr to put radio bytes into buf
+  // Also going to watch serial in case client wants to interrupt rx
+  URX1IF = 0;
+
   while(1) {
     if (buf_idx > read_idx) {
       d_byte = buf[read_idx];
@@ -97,6 +95,12 @@ void get_packet() {
       if (read_idx > 1 && read_idx == buf_idx && d_byte == 0) {
         break;
       }
+    }
+    if (URX1IF) {
+      // Got a byte on serial (interruption)
+      interrupting_cmd = U1DBUF;
+      RFST = RFST_SIDLE;
+      return;
     }
   }
   buf_idx = 0;

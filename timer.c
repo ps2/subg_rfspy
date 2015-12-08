@@ -2,11 +2,6 @@
 #include <stdint.h>
 #include "hardware.h"
 
-#ifndef NON_NATIVE_TEST
-#include <cc1110.h>  // /usr/share/sdcc/include/mcs51/cc1110.h
-#include "ioCCxx10_bitdef.h"
-#endif
-
 volatile uint8_t timerCounter = 0;
 
 void init_timer() {
