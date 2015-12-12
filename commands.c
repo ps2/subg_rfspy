@@ -14,16 +14,17 @@ CommandHandler handlers[] = {
   /* 1 */ cmd_get_state,
   /* 2 */ cmd_get_version,
   /* 3 */ cmd_set_channel, 
-  /* 4 */ cmd_get_packet
+  /* 4 */ cmd_get_packet,
+  /* 5 */ cmd_send_packet
 };
 
 void cmd_set_channel() {
   CHANNR = serial_rx_byte();
+  serial_tx_byte(0);
 }
 
 void cmd_get_packet() {
-  
-  get_packet();
+  get_packet_and_write_to_serial();
 }
 
 void cmd_get_state() {
@@ -53,5 +54,10 @@ void get_command() {
     do_cmd(interrupting_cmd);
     interrupting_cmd = 0;
   }
+}
+
+void cmd_send_packet() {
+  send_packet_from_serial();    
+  serial_tx_byte(0);
 }
 

@@ -10,7 +10,7 @@
 // SDCC needs prototypes of all ISR functions in main. not sure why, but described in section 3.8.1
 void t1_isr(void) __interrupt T1_VECTOR;
 void rftxrx_isr(void) __interrupt RFTXRX_VECTOR;
-
+void rf_isr(void) __interrupt RF_VECTOR;
 
 int main(void)
 {

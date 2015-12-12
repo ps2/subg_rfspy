@@ -2,6 +2,8 @@
 #define RADIO_H
 
 void configure_radio();
-void get_packet();
+void get_packet_and_write_to_serial();
+void send_packet_from_serial();
+
 
 #endif

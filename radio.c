@@ -39,40 +39,108 @@ void configure_radio()
   TEST1     = 0x31; // various test settings
   TEST0     = 0x09; // various test settings
   PA_TABLE0 = 0x00; // needs to be explicitly set!
-  PA_TABLE1 = 0x57; // pa power setting 0 dBm
+  PA_TABLE1 = 0xC0; // pa power setting 0 dBm
 
   IEN2 |= IEN2_RFIE;
   RFTXRXIE = 1;
 }
 
 #define MAX_PACKET_LEN 192
-volatile uint8_t __xdata buf[MAX_PACKET_LEN];
-volatile uint8_t buf_idx = 0;
+volatile uint8_t __xdata radio_tx_buf[MAX_PACKET_LEN];
+volatile uint8_t radio_tx_buf_len = 0;
+volatile uint8_t radio_tx_buf_idx = 0;
+volatile uint8_t __xdata radio_rx_buf[MAX_PACKET_LEN];
+volatile uint8_t radio_rx_buf_len = 0;
 volatile uint8_t packet_count = 1;
+volatile uint8_t overflow_count = 0;
 
 void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
   uint8_t d_byte;
   if (MARCSTATE==MARC_STATE_RX) {
     d_byte = RFD;
-    if (buf_idx == 0) {
-      buf[0] = RSSI; 
-      buf[1] = packet_count; 
+    if (radio_rx_buf_len == 0) {
+      radio_rx_buf[0] = RSSI; 
+      radio_rx_buf[1] = packet_count; 
       packet_count++;
-      buf_idx = 2;
+      radio_rx_buf_len = 2;
     }
     if (packet_count == 0) {
       packet_count = 1;
     }
-    buf[buf_idx] = d_byte;
-    buf_idx++;
+    radio_rx_buf[radio_rx_buf_len] = d_byte;
+    radio_rx_buf_len++;
     if (d_byte == 0) {
       RFST = RFST_SIDLE;
       while(MARCSTATE!=MARC_STATE_IDLE);
     }
   }
+  else if (MARCSTATE==MARC_STATE_TX) {
+    if (radio_tx_buf_len > radio_tx_buf_idx) {
+      d_byte = radio_tx_buf[radio_tx_buf_idx++];
+      RFD = d_byte;
+    } else {
+      RFD = 0;
+      overflow_count++;
+      if (overflow_count == 5) {
+        RFST = RFST_SIDLE;
+      }
+    }
+  }
 }
 
-void get_packet() {
+void rf_isr(void) __interrupt RF_VECTOR {
+  S1CON &= ~0x03; // Clear CPU interrupt flag
+  if(RFIF & 0x80) // TX underflow
+  {
+    // Underflow
+    BLUE_LED = 1;
+    RFST = RFST_SIDLE;
+    RFIF &= ~0x80; // Clear module interrupt flag
+  }
+  else if(RFIF & 0x40) // RX overflow
+  {
+    RFIF &= ~0x40; // Clear module interrupt flag
+  }
+  else if(RFIF & 0x20) // RX timeout
+  {
+    RFIF &= ~0x20; // Clear module interrupt flag
+  }
+  // Use ”else if” to check and handle other RFIF flags
+
+}
+
+
+void send_packet_from_serial() {
+  volatile uint8_t s_byte;
+  radio_tx_buf_len = 0;
+  radio_tx_buf_idx = 0;
+  overflow_count = 0;
+
+  RFST = RFST_SIDLE;
+  while(MARCSTATE!=MARC_STATE_IDLE);
+
+  while (1) {
+    s_byte = serial_rx_byte();
+    if (radio_tx_buf_len == (MAX_PACKET_LEN - 1)) {
+      s_byte = 0;
+    }
+    radio_tx_buf[radio_tx_buf_len++] = s_byte;
+    if (s_byte == 0) {
+      break;
+    }
+
+    if (radio_tx_buf_len == 2) { 
+      // Turn on radio
+      GREEN_LED = 1;
+      RFST = RFST_STX;
+    }
+  }
+
+  // wait for sending to finish
+  while(MARCSTATE!=MARC_STATE_IDLE);
+}
+
+void get_packet_and_write_to_serial() {
 
   uint8_t read_idx = 0;
   uint8_t d_byte = 0;
@@ -83,27 +151,27 @@ void get_packet() {
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
 
-  // Waiting for isr to put radio bytes into buf
-  // Also going to watch serial in case client wants to interrupt rx
+  // Waiting for isr to put radio bytes into radio_rx_buf
+  // Also going to watch serial in case the client wants to interrupt rx
   URX1IF = 0;
 
   while(1) {
-    if (buf_idx > read_idx) {
-      d_byte = buf[read_idx];
+    if (radio_rx_buf_len > read_idx) {
+      d_byte = radio_rx_buf[read_idx];
       serial_tx_byte(d_byte);
       read_idx++;
-      if (read_idx > 1 && read_idx == buf_idx && d_byte == 0) {
+      if (read_idx > 1 && read_idx == radio_rx_buf_len && d_byte == 0) {
         break;
       }
     }
     if (URX1IF) {
-      // Got a byte on serial (interruption)
+      // Received a byte from uart while waiting for radio packet
+      // We will interrupt the RX and go handle the command.
       interrupting_cmd = U1DBUF;
       RFST = RFST_SIDLE;
       return;
     }
   }
-  buf_idx = 0;
-  GREEN_LED = 1;
+  radio_rx_buf_len = 0;
 }
 

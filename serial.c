@@ -27,12 +27,15 @@ void configure_uart()
 
   // Enable receive
   U1CSR |= 0x40;
+  URX1IF = 0;
 }
 
 uint8_t serial_rx_byte() {
-  URX1IF = 0;
+  uint8_t s_data;
   while(!URX1IF);
-  return U1DBUF;
+  s_data = U1DBUF;
+  URX1IF = 0;
+  return s_data;
 } 
 
 void serial_tx_byte(uint8_t tx_byte) {
