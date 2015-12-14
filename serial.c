@@ -45,6 +45,14 @@ void serial_tx_byte(uint8_t tx_byte) {
   UTX1IF = 0;
 }
 
+void serial_tx_str(const char *str) {
+  while(*str != 0) {
+    serial_tx_byte(*str);
+    str++;
+  }
+  serial_tx_byte(0);
+}
+
 void serial_tx_buf(uint8_t *buf, uint8_t len) {
   uint8_t pos = 0;
   while(len-->0) {

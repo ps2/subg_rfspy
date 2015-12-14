@@ -28,17 +28,11 @@ void cmd_get_packet() {
 }
 
 void cmd_get_state() {
-  BLUE_LED = !BLUE_LED;
-  serial_tx_byte('O');
-  serial_tx_byte('K');
-  serial_tx_byte(0);
+  serial_tx_str("OK");
 }
 
 void cmd_get_version() {
-  serial_tx_byte('0');
-  serial_tx_byte('.');
-  serial_tx_byte('1');
-  serial_tx_byte(0);
+  serial_tx_str("subg_rfspy 0.1");
 }
 
 void do_cmd(uint8_t cmd) {
