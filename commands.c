@@ -28,6 +28,7 @@ void cmd_get_packet() {
 }
 
 void cmd_get_state() {
+  BLUE_LED = !BLUE_LED;
   serial_tx_byte('O');
   serial_tx_byte('K');
   serial_tx_byte(0);

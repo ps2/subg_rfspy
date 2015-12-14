@@ -32,7 +32,7 @@ void configure_uart()
 
 uint8_t serial_rx_byte() {
   uint8_t s_data;
-  while(!URX1IF);
+  while(!SERIAL_DATA_AVAILABLE);  // URX1IF
   s_data = U1DBUF;
   URX1IF = 0;
   return s_data;

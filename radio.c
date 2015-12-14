@@ -151,11 +151,9 @@ void get_packet_and_write_to_serial() {
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
 
-  // Waiting for isr to put radio bytes into radio_rx_buf
-  // Also going to watch serial in case the client wants to interrupt rx
-  URX1IF = 0;
 
   while(1) {
+    // Waiting for isr to put radio bytes into radio_rx_buf
     if (radio_rx_buf_len > read_idx) {
       d_byte = radio_rx_buf[read_idx];
       serial_tx_byte(d_byte);
@@ -164,10 +162,11 @@ void get_packet_and_write_to_serial() {
         break;
       }
     }
-    if (URX1IF) {
+    // Also going to watch serial in case the client wants to interrupt rx
+    if (SERIAL_DATA_AVAILABLE) {
       // Received a byte from uart while waiting for radio packet
       // We will interrupt the RX and go handle the command.
-      interrupting_cmd = U1DBUF;
+      interrupting_cmd = serial_rx_byte();
       RFST = RFST_SIDLE;
       return;
     }
