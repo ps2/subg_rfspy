@@ -60,6 +60,9 @@ void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
     d_byte = RFD;
     if (radio_rx_buf_len == 0) {
       radio_rx_buf[0] = RSSI; 
+      if (radio_rx_buf[0] == 0) {
+        radio_rx_buf[0] == 1;
+      }
       radio_rx_buf[1] = packet_count; 
       packet_count++;
       radio_rx_buf_len = 2;
@@ -145,8 +148,11 @@ void get_packet_and_write_to_serial() {
   uint8_t read_idx = 0;
   uint8_t d_byte = 0;
 
+
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
+
+  radio_rx_buf_len = 0;
 
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
@@ -171,6 +177,5 @@ void get_packet_and_write_to_serial() {
       return;
     }
   }
-  radio_rx_buf_len = 0;
 }
 
