@@ -24,7 +24,9 @@ void cmd_set_channel() {
 }
 
 void cmd_get_packet() {
-  get_packet_and_write_to_serial();
+  uint8_t timeout_ms;
+  timeout_ms = serial_rx_byte();
+  get_packet_and_write_to_serial(timeout_ms);
 }
 
 void cmd_get_state() {

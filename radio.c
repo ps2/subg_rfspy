@@ -4,6 +4,7 @@
 #include "serial.h"
 #include "commands.h"
 #include "delay.h"
+#include "timer.h"
 
 
 void configure_radio()
@@ -165,11 +166,12 @@ void send_packet_from_serial(uint8_t repeat_count, uint8_t delay_ms) {
   }
 }
 
-void get_packet_and_write_to_serial() {
+void get_packet_and_write_to_serial(uint8_t timeout_ms) {
 
   uint8_t read_idx = 0;
   uint8_t d_byte = 0;
 
+  reset_timer();
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
@@ -178,7 +180,6 @@ void get_packet_and_write_to_serial() {
 
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
-
 
   while(1) {
     // Waiting for isr to put radio bytes into radio_rx_buf
@@ -190,6 +191,13 @@ void get_packet_and_write_to_serial() {
         break;
       }
     }
+
+    if (timeout_ms > 0 && timerCounter > timeout_ms && radio_rx_buf_len == 0) {
+      RFST = RFST_SIDLE;
+      serial_tx_byte(0);
+      return;
+    }
+  
     // Also going to watch serial in case the client wants to interrupt rx
     if (SERIAL_DATA_AVAILABLE) {
       // Received a byte from uart while waiting for radio packet
