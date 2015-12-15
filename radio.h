@@ -3,6 +3,6 @@
 
 void configure_radio();
 void get_packet_and_write_to_serial();
-void send_packet_from_serial(uint8_t repeat_count, uint16_t repeat_delay);
+void send_packet_from_serial(uint8_t repeat_count, uint8_t delay_ms);
 
 #endif

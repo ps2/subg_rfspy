@@ -53,10 +53,10 @@ void get_command() {
 
 void cmd_send_packet() {
   uint8_t repeat_count;
-  uint16_t repeat_delay;
+  uint16_t delay_ms;
   repeat_count = serial_rx_byte();
-  repeat_delay = serial_rx_word();
-  send_packet_from_serial(repeat_count, repeat_delay);
+  delay_ms = serial_rx_byte();
+  send_packet_from_serial(repeat_count, delay_ms);
   serial_tx_byte(0);
 }
 

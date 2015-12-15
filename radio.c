@@ -115,7 +115,7 @@ void rf_isr(void) __interrupt RF_VECTOR {
 
 }
 
-void send_packet_from_serial(uint8_t repeat_count, uint16_t repeat_delay) {
+void send_packet_from_serial(uint8_t repeat_count, uint8_t delay_ms) {
   uint8_t s_byte;
   
   radio_tx_buf_len = 0;
@@ -151,8 +151,8 @@ void send_packet_from_serial(uint8_t repeat_count, uint16_t repeat_delay) {
     underflow_count = 0;
 
     // delay 
-    if (repeat_delay > 0) {
-      delay(repeat_delay);
+    if (delay_ms > 0) {
+      delay(delay_ms);
     }
     
     // Turn on radio (interrupts should start again)
