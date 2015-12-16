@@ -88,7 +88,7 @@ void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
       underflow_count++;
       // We wait a few counts to make sure the radio has sent the last bytes
       // before turning it off.
-      if (underflow_count == 5) {
+      if (underflow_count == 2) {
         RFST = RFST_SIDLE;
       }
     }
@@ -116,7 +116,7 @@ void rf_isr(void) __interrupt RF_VECTOR {
 
 }
 
-void send_packet_from_serial(uint8_t repeat_count, uint8_t delay_ms) {
+void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t delay_ms) {
   uint8_t s_byte;
   
   radio_tx_buf_len = 0;
@@ -125,6 +125,8 @@ void send_packet_from_serial(uint8_t repeat_count, uint8_t delay_ms) {
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
+
+  CHANNR = channel;
 
   while (1) {
     s_byte = serial_rx_byte();
@@ -166,7 +168,7 @@ void send_packet_from_serial(uint8_t repeat_count, uint8_t delay_ms) {
   }
 }
 
-void get_packet_and_write_to_serial(uint8_t timeout_ms) {
+void get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
 
   uint8_t read_idx = 0;
   uint8_t d_byte = 0;
@@ -175,6 +177,8 @@ void get_packet_and_write_to_serial(uint8_t timeout_ms) {
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
+
+  CHANNR = channel;
 
   radio_rx_buf_len = 0;
 
