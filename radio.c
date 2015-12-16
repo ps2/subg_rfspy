@@ -22,7 +22,7 @@ void configure_radio()
   FREQ2     = 0x26; // frequency control word, high byte
   FREQ1     = 0x2F; // frequency control word, middle byte
   FREQ0     = 0xE4; // frequency control word, low byte
-  MDMCFG4   = 0xB9; // modem configuration
+  MDMCFG4   = 0x89; // 187.5 kHz rx filter bandwidth
   MDMCFG3   = 0x66; // modem configuration
   MDMCFG2   = 0x33; // modem configuration
   MDMCFG1   = 0x61; // modem configuration
@@ -41,7 +41,11 @@ void configure_radio()
   TEST1     = 0x31; // various test settings
   TEST0     = 0x09; // various test settings
   PA_TABLE0 = 0x00; // needs to be explicitly set!
-  PA_TABLE1 = 0xC0; // pa power setting 0 dBm
+  PA_TABLE1 = 0xC0; // pa power setting 10 dBm
+
+  AGCCTRL2 = 0x03; // 0x03 to 0x07 - default: 0x03
+  AGCCTRL1 = 0x00; // 0x00         - default: 0x40
+  AGCCTRL0 = 0x91; // 0x91 or 0x92 - default: 0x91
 
   IEN2 |= IEN2_RFIE;
   RFTXRXIE = 1;
