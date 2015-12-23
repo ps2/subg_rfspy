@@ -3,7 +3,7 @@
 
 #define SERIAL_DATA_AVAILABLE URX1IF
 
-void configure_uart();
+void configure_serial();
 void serial_tx_byte(uint8_t);
 void serial_tx_buf(uint8_t *buf, uint8_t len);
 void serial_tx_str(const char *str);
