@@ -3,6 +3,8 @@
 #include "hardware.h"
 #include "serial.h"
 #include "commands.h"
+#include "delay.h"
+#include "timer.h"
 
 
 void configure_radio()
@@ -20,7 +22,7 @@ void configure_radio()
   FREQ2     = 0x26; // frequency control word, high byte
   FREQ1     = 0x2F; // frequency control word, middle byte
   FREQ0     = 0xE4; // frequency control word, low byte
-  MDMCFG4   = 0xB9; // modem configuration
+  MDMCFG4   = 0x89; // 187.5 kHz rx filter bandwidth
   MDMCFG3   = 0x66; // modem configuration
   MDMCFG2   = 0x33; // modem configuration
   MDMCFG1   = 0x61; // modem configuration
@@ -39,7 +41,11 @@ void configure_radio()
   TEST1     = 0x31; // various test settings
   TEST0     = 0x09; // various test settings
   PA_TABLE0 = 0x00; // needs to be explicitly set!
-  PA_TABLE1 = 0xC0; // pa power setting 0 dBm
+  PA_TABLE1 = 0xC0; // pa power setting 10 dBm
+
+  AGCCTRL2 = 0x03; // 0x03 to 0x07 - default: 0x03
+  AGCCTRL1 = 0x00; // 0x00         - default: 0x40
+  AGCCTRL0 = 0x91; // 0x91 or 0x92 - default: 0x91
 
   IEN2 |= IEN2_RFIE;
   RFTXRXIE = 1;
@@ -52,7 +58,7 @@ volatile uint8_t radio_tx_buf_idx = 0;
 volatile uint8_t __xdata radio_rx_buf[MAX_PACKET_LEN];
 volatile uint8_t radio_rx_buf_len = 0;
 volatile uint8_t packet_count = 1;
-volatile uint8_t overflow_count = 0;
+volatile uint8_t underflow_count = 0;
 
 void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
   uint8_t d_byte;
@@ -83,8 +89,10 @@ void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
       RFD = d_byte;
     } else {
       RFD = 0;
-      overflow_count++;
-      if (overflow_count == 5) {
+      underflow_count++;
+      // We wait a few counts to make sure the radio has sent the last bytes
+      // before turning it off.
+      if (underflow_count == 2) {
         RFST = RFST_SIDLE;
       }
     }
@@ -112,15 +120,17 @@ void rf_isr(void) __interrupt RF_VECTOR {
 
 }
 
-
-void send_packet_from_serial() {
-  volatile uint8_t s_byte;
+void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t delay_ms) {
+  uint8_t s_byte;
+  
   radio_tx_buf_len = 0;
   radio_tx_buf_idx = 0;
-  overflow_count = 0;
+  underflow_count = 0;
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
+
+  CHANNR = channel;
 
   while (1) {
     s_byte = serial_rx_byte();
@@ -141,22 +151,43 @@ void send_packet_from_serial() {
 
   // wait for sending to finish
   while(MARCSTATE!=MARC_STATE_IDLE);
+
+  while(repeat_count > 0) {
+    // Reset idx to beginning of buffer
+    radio_tx_buf_idx = 0;
+    underflow_count = 0;
+
+    // delay 
+    if (delay_ms > 0) {
+      delay(delay_ms);
+    }
+    
+    // Turn on radio (interrupts should start again)
+    RFST = RFST_STX;
+    while(MARCSTATE!=MARC_STATE_TX);
+
+    // wait for sending to finish
+    while(MARCSTATE!=MARC_STATE_IDLE);
+    repeat_count--;
+  }
 }
 
-void get_packet_and_write_to_serial() {
+void get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
 
   uint8_t read_idx = 0;
   uint8_t d_byte = 0;
 
+  reset_timer();
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
+
+  CHANNR = channel;
 
   radio_rx_buf_len = 0;
 
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
-
 
   while(1) {
     // Waiting for isr to put radio bytes into radio_rx_buf
@@ -168,6 +199,13 @@ void get_packet_and_write_to_serial() {
         break;
       }
     }
+
+    if (timeout_ms > 0 && timerCounter > timeout_ms && radio_rx_buf_len == 0) {
+      RFST = RFST_SIDLE;
+      serial_tx_byte(0);
+      return;
+    }
+  
     // Also going to watch serial in case the client wants to interrupt rx
     if (SERIAL_DATA_AVAILABLE) {
       // Received a byte from uart while waiting for radio packet

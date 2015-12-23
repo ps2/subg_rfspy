@@ -9,6 +9,7 @@
 #ifdef RILEYLINK
 #define GREEN_LED P0_0
 #define BLUE_LED P0_1
+#define SYSTEM_CLOCK_MHZ 24
 #endif
 
 #endif

@@ -32,10 +32,13 @@ if len(sys.argv) == 3:
 
 rl = SerialRL(sys.argv[1])
 rl.sync()
-rl.send_command(SerialRL.CMD_SET_CHANNEL, chr(channel))
+rl.do_command(SerialRL.CMD_SET_CHANNEL, chr(channel))
 while 1:
-  rl.send_command(SerialRL.CMD_GET_PACKET)
+  timeout = 0
+  rl.send_command(SerialRL.CMD_GET_PACKET, chr(timeout))
   packet = rl.get_response()
   if len(packet) > 2:
     print_packet(packet)
-
+  else:
+    print "Timeout"
+    sys.exit(0)
