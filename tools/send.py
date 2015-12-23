@@ -20,4 +20,4 @@ rl.sync()
 rl.do_command(SerialRL.CMD_SET_CHANNEL, chr(channel))
 
 for _ in range(50):
-  rl.do_command(SerialRL.CMD_SEND_PACKET, binascii.unhexlify("a968e55658e594d555d1a500"))
+  rl.do_command(SerialRL.CMD_SEND_PACKET, binascii.unhexlify("0000a968e55658e594d555d1a500"))
