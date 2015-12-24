@@ -4,7 +4,7 @@
 #include "serial.h"
 #include "radio.h"
 
-#define SPI_BUF_LEN 200 
+#define SPI_BUF_LEN 220 
 
 volatile uint8_t __xdata spi_input_buf[SPI_BUF_LEN];
 volatile uint8_t input_size = 0;
@@ -81,6 +81,8 @@ void configure_serial()
   TCON &= ~BIT3; // Clear URX1IF
   URX1IE = 1;    // Enable URX1IE interrupt
 
+  IRCON2 &= ~BIT2; // Clear UTX1IF
+  IEN2 |= BIT3;    // Enable UTX1IE interrupt
 }
 
 void rx1_isr(void) __interrupt URX1_VECTOR {
@@ -97,6 +99,7 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
 
 void tx1_isr(void) __interrupt UTX1_VECTOR {
   if (output_size > 0) {
+    GREEN_LED = 1;
     U1DBUF = spi_output_buf[output_tail_idx];
     output_size--;
     output_tail_idx++;
