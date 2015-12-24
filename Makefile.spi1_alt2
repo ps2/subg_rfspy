@@ -3,7 +3,7 @@ include common.mk
 
 default: output output/subg_rfspy.hex
 
-CFLAGS=-I. -Ispi1_alt2 --verbose -DRILEYLINK -DUSES_URX1_ISR
+CFLAGS=-I. -Ispi1_alt2 --verbose -DRILEYLINK -DUSES_USART1_ISR
 LDFLAGS=--xram-loc 0xf000 --xram-size 0x1000
 
 serial.rel: spi1_alt2/serial.c

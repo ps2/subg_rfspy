@@ -4,6 +4,34 @@
 #include "serial.h"
 #include "radio.h"
 
+#define SPI_BUF_LEN 200 
+
+volatile uint8_t __xdata spi_input_buf[SPI_BUF_LEN];
+volatile uint8_t input_size = 0;
+volatile uint8_t input_head_idx = 0;
+volatile uint8_t input_tail_idx = 0;
+
+volatile uint8_t __xdata spi_output_buf[SPI_BUF_LEN];
+volatile uint8_t output_size = 0;
+volatile uint8_t output_head_idx = 0;
+volatile uint8_t output_tail_idx = 0;
+
+volatile uint8_t serial_data_available;
+
+/***************************************************************************
+ * 
+ * SPI encoding: 
+ * 
+ * In order to handle the SPI master polling us when we have no data to send,
+ * we use a special encoding. 
+ * 
+ * 0x99 = No data
+ * 0x98 = Escape character.  Next character will be a special character
+ *        (0x99 or 0x98), but will be bitwise inverted
+ *
+ */
+
+
 void configure_serial()
 {
 
@@ -56,16 +84,42 @@ void configure_serial()
 }
 
 void rx1_isr(void) __interrupt URX1_VECTOR {
-  uint8_t value;
-  value = U1DBUF;
+  if (input_size < SPI_BUF_LEN) {
+    spi_input_buf[input_head_idx] = U1DBUF;
+    input_head_idx++;
+    if (input_head_idx >= SPI_BUF_LEN) {
+      input_head_idx = 0;
+    }
+    input_size++;
+    serial_data_available = 1;
+  }
 }
 
+void tx1_isr(void) __interrupt UTX1_VECTOR {
+  if (output_size > 0) {
+    U1DBUF = spi_output_buf[output_tail_idx];
+    output_size--;
+    output_tail_idx++;
+    if (output_tail_idx >= SPI_BUF_LEN) {
+      output_tail_idx = 0;
+    }
+  } else {
+    U1DBUF = 0x99; 
+  }
+}
 
 uint8_t serial_rx_byte() {
   uint8_t s_data;
-  while(!SERIAL_DATA_AVAILABLE);  // URX1IF
-  s_data = U1DBUF;
-  URX1IF = 0;
+  while(!SERIAL_DATA_AVAILABLE);
+  s_data = spi_input_buf[input_tail_idx];
+  input_tail_idx++;
+  if (input_tail_idx >= SPI_BUF_LEN) {
+    input_tail_idx = 0;
+  }
+  input_size--;
+  if (input_size == 0) {
+    serial_data_available = 0;
+  }
   return s_data;
 } 
 
@@ -73,11 +127,29 @@ uint16_t serial_rx_word() {
   return (serial_rx_byte() << 8) + serial_rx_byte();
 }
 
+void add_byte_to_tx_buf_without_escaping(uint8_t tx_byte) {
+  if (output_size >= SPI_BUF_LEN) {
+    // drop oldest byte
+    output_size--;
+    output_tail_idx++;
+    if (output_tail_idx >= SPI_BUF_LEN) {
+      output_tail_idx = 0;
+    }
+  }
+  spi_output_buf[output_head_idx] = tx_byte;
+  output_head_idx++;
+  if (output_head_idx >= SPI_BUF_LEN) {
+    output_head_idx = 0;
+  }
+  output_size++;
+}
+
 void serial_tx_byte(uint8_t tx_byte) {
-  UTX1IF = 0;
-  U1DBUF = tx_byte;
-  while ( !UTX1IF );
-  UTX1IF = 0;
+  // Escape special characters
+  if(tx_byte == 0x99 || tx_byte == 0x98) {
+    add_byte_to_tx_buf_without_escaping(0x98);
+    add_byte_to_tx_buf_without_escaping(~tx_byte);
+  }
 }
 
 void serial_tx_str(const char *str) {
@@ -88,10 +160,4 @@ void serial_tx_str(const char *str) {
   serial_tx_byte(0);
 }
 
-void serial_tx_buf(uint8_t *buf, uint8_t len) {
-  uint8_t pos = 0;
-  while(len-->0) {
-    serial_tx_byte(buf[pos++]);
-  }
-}
 
