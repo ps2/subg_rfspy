@@ -98,8 +98,8 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
 }
 
 void tx1_isr(void) __interrupt UTX1_VECTOR {
+  IRCON2 &= ~BIT2; // Clear UTX1IF
   if (output_size > 0) {
-    GREEN_LED = 1;
     U1DBUF = spi_output_buf[output_tail_idx];
     output_size--;
     output_tail_idx++;
@@ -107,7 +107,7 @@ void tx1_isr(void) __interrupt UTX1_VECTOR {
       output_tail_idx = 0;
     }
   } else {
-    U1DBUF = 0x99; 
+    U1DBUF = 0x99;
   }
 }
 
@@ -152,6 +152,8 @@ void serial_tx_byte(uint8_t tx_byte) {
   if(tx_byte == 0x99 || tx_byte == 0x98) {
     add_byte_to_tx_buf_without_escaping(0x98);
     add_byte_to_tx_buf_without_escaping(~tx_byte);
+  } else {
+    add_byte_to_tx_buf_without_escaping(tx_byte);
   }
 }
 

@@ -42,7 +42,6 @@ int main(void)
   configure_serial();
 
   while(1) {
-    //get_packet();
     get_command();
   }
 }
