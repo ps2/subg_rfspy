@@ -4,8 +4,9 @@
 #include "serial.h"
 #include "radio.h"
 
-void configure_uart()
+void configure_serial()
 {
+
   // UART1 Alt. 2 
   // P1.4 - CT
   // P1.5 - RT
@@ -24,10 +25,10 @@ void configure_uart()
   U1GCR = (U0GCR&~0x1F) | 9; 
   U1UCR |= 0xc0; // Flush, and turn on hw flow control
 
-
   // Enable receive
   U1CSR |= 0x40;
   URX1IF = 0;
+
 }
 
 uint8_t serial_rx_byte() {
@@ -57,10 +58,4 @@ void serial_tx_str(const char *str) {
   serial_tx_byte(0);
 }
 
-void serial_tx_buf(uint8_t *buf, uint8_t len) {
-  uint8_t pos = 0;
-  while(len-->0) {
-    serial_tx_byte(buf[pos++]);
-  }
-}
 

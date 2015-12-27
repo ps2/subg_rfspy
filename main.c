@@ -12,6 +12,11 @@ void t1_isr(void) __interrupt T1_VECTOR;
 void rftxrx_isr(void) __interrupt RFTXRX_VECTOR;
 void rf_isr(void) __interrupt RF_VECTOR;
 
+#ifdef USES_USART1_ISR
+void rx1_isr(void) __interrupt URX1_VECTOR;
+void tx1_isr(void) __interrupt UTX1_VECTOR;
+#endif
+
 int main(void)
 {
 
@@ -34,10 +39,9 @@ int main(void)
   EA = 1;
 
   configure_radio();
-  configure_uart();
+  configure_serial();
 
   while(1) {
-    //get_packet();
     get_command();
   }
 }
