@@ -144,7 +144,6 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
 
     if (radio_tx_buf_len == 2) { 
       // Turn on radio
-      GREEN_LED = 1;
       RFST = RFST_STX;
     }
   }
@@ -192,6 +191,8 @@ void get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
   while(1) {
     // Waiting for isr to put radio bytes into radio_rx_buf
     if (radio_rx_buf_len > read_idx) {
+      GREEN_LED = 1;
+
       d_byte = radio_rx_buf[read_idx];
       serial_tx_byte(d_byte);
       read_idx++;

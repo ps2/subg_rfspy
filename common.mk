@@ -24,7 +24,7 @@ serial.rel: ${SERIAL_TYPE}/serial.c
 output/${TARGET_BUILD}/${TARGET_BUILD}.hex: $(common_modules) serial.rel
 	cd output/${TARGET_BUILD} && $(CC) $(LDFLAGS) $(CFLAGS) $(common_modules) serial.rel -o ${TARGET_BUILD}.hex
 
-install: output/${TARGET_BUILD}/${TARGET_BUILD}.hex
+install: output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 	cc-tool -n cc1110 --log install.log -ew output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 
 test: main.c output

@@ -18,6 +18,8 @@ volatile uint8_t output_tail_idx = 0;
 
 volatile uint8_t serial_data_available;
 
+volatile uint8_t input_escaping;
+
 /***************************************************************************
  * 
  * SPI encoding: 
@@ -25,10 +27,11 @@ volatile uint8_t serial_data_available;
  * In order to handle the SPI master polling us when we have no data to send,
  * we use a special encoding. 
  * 
- * 0x99 = No data
+ * 0x99 From the slave = No data
+ * 0x99 From the master = No command, just polling for data
  * 0x98 = Escape character.  Next character will be a special character
- *        (0x99 or 0x98), but will be bitwise inverted
- *
+ *        (0x99 or 0x98), but will be bitwise inverted. 
+ *        Should only be used to encode 0x99 and 0x98
  */
 
 
@@ -86,8 +89,26 @@ void configure_serial()
 }
 
 void rx1_isr(void) __interrupt URX1_VECTOR {
+  uint8_t value;
+  value = U1DBUF;
+
+  if (value == 0x98) {
+    input_escaping = 1;
+    return;
+  }
+
+  if (value == 0x99) {
+    // Just polling
+    return;
+  }
+
+  if (input_escaping) {
+    value = ~value;
+    input_escaping = 0;
+  }
+
   if (input_size < SPI_BUF_LEN) {
-    spi_input_buf[input_head_idx] = U1DBUF;
+    spi_input_buf[input_head_idx] = value;
     input_head_idx++;
     if (input_head_idx >= SPI_BUF_LEN) {
       input_head_idx = 0;
