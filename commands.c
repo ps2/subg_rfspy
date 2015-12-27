@@ -14,7 +14,8 @@ CommandHandler handlers[] = {
   /* 1 */ cmd_get_state,
   /* 2 */ cmd_get_version,
   /* 3 */ cmd_get_packet,
-  /* 4 */ cmd_send_packet
+  /* 4 */ cmd_send_packet,
+  /* 5 */ cmd_send_and_listen
 };
 
 void cmd_get_packet() {
@@ -60,3 +61,19 @@ void cmd_send_packet() {
   serial_tx_byte(0);
 }
 
+/* Combined send and receive */
+void cmd_send_and_listen() {
+  uint8_t send_channel;
+  uint8_t repeat_count;
+  uint8_t delay_ms;
+  uint8_t listen_channel;
+  uint16_t timeout_ms;
+  
+  send_channel = serial_rx_byte();
+  repeat_count = serial_rx_byte();
+  delay_ms = serial_rx_byte();
+  listen_channel = serial_rx_byte();
+  timeout_ms = serial_rx_word();
+  send_packet_from_serial(send_channel, repeat_count, delay_ms);
+  get_packet_and_write_to_serial(listen_channel, timeout_ms);
+}
