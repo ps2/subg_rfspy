@@ -23,7 +23,7 @@ void configure_serial()
   // Bitrate 19200
   U1BAUD = 163;
   U1GCR = (U0GCR&~0x1F) | 9; 
-  U1UCR |= 0xc0; // Flush, and turn on hw flow control
+  U1UCR |= HARDWARE_FLOW_CONTROL_CONFIG; // Flush, and configure hw flow control
 
   // Enable receive
   U1CSR |= 0x40;
