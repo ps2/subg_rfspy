@@ -16,9 +16,16 @@
 #define BIT7 0x80
 
 #ifdef RILEYLINK
+#define HARDWARE_LED_INIT P0DIR |= BIT0|BIT1;
 #define GREEN_LED P0_0
 #define BLUE_LED P0_1
 #define SYSTEM_CLOCK_MHZ 24
+#elif SRF_ERF
+#define HARDWARE_LED_INIT P1DIR |= BIT7;
+#define GREEN_LED P1_7
+#define BLUE_LED P1_7
+#define SYSTEM_CLOCK_MHZ 24
 #endif
+
 
 #endif

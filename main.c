@@ -30,7 +30,7 @@ int main(void)
 
 
   // init LEDS
-  P0DIR |= 0x03;
+  HARDWARE_LED_INIT;       // see hardware.h
   GREEN_LED = 0;
   BLUE_LED = 0;
 
