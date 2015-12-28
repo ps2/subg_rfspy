@@ -25,7 +25,7 @@ output/${TARGET_BUILD}/${TARGET_BUILD}.hex: $(common_modules) serial.rel
 	cd output/${TARGET_BUILD} && $(CC) $(LDFLAGS) $(CFLAGS) $(common_modules) serial.rel -o ${TARGET_BUILD}.hex
 
 install: output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
-	cc-tool -n cc1110 --log install.log -ew output/${TARGET_BUILD}/${TARGET_BUILD}.hex
+	sudo cc-tool -n cc1110 --log install.log -ew output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 
 test: main.c output
 	gcc -g -o output/${TARGET_BUILD}/test -DNON_NATIVE_TEST main.c
@@ -33,7 +33,7 @@ test: main.c output
 output:
 	mkdir output
 
-output/${TARGET_BUILD}:
+output/${TARGET_BUILD}: output
 	mkdir output/${TARGET_BUILD}/
 
 output/${TARGET_BUILD}/%.rel : %.c Makefile
