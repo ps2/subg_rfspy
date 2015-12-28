@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from serial_rl import SerialRL
+from serial_rf_spy import SerialRfSpy
 import sys
 import binascii
 import time
@@ -15,9 +15,9 @@ channel = 2
 if len(sys.argv) == 3:
   channel = int(sys.argv[2])
 
-rl = SerialRL(sys.argv[1])
+rl = SerialRfSpy(sys.argv[1])
 rl.sync()
-rl.do_command(SerialRL.CMD_SET_CHANNEL, chr(channel))
+rl.do_command(SerialRfSpy.CMD_SET_CHANNEL, chr(channel))
 
 for _ in range(50):
-  rl.do_command(SerialRL.CMD_SEND_PACKET, binascii.unhexlify("0000a968e55658e594d555d1a500"))
+  rl.do_command(SerialRfSpy.CMD_SEND_PACKET, binascii.unhexlify("0000a968e55658e594d555d1a500"))

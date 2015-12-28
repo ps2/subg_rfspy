@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from serial_rl import SerialRL
+from serial_rf_spy import SerialRfSpy
 import sys
 import binascii
 import time
@@ -12,8 +12,8 @@ if len(sys.argv) < 2:
 
 channel = 0
 
-rl = SerialRL(sys.argv[1])
+rl = SerialRfSpy(sys.argv[1])
 rl.sync()
-resp = rl.do_command(SerialRL.CMD_GET_VERSION)
+resp = rl.do_command(SerialRfSpy.CMD_GET_VERSION)
 
 print "Response: " + resp
