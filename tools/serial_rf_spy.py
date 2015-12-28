@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
+import os
 import serial
 import time
 
-class SerialRL:
+class SerialRfSpy:
 
   CMD_GET_STATE = 1
   CMD_GET_VERSION = 2
@@ -11,8 +12,11 @@ class SerialRL:
   CMD_GET_PACKET = 4
   CMD_SEND_PACKET = 5
 
-  def __init__(self, serial_port):
-    self.ser = serial.Serial(serial_port, 19200, rtscts=1, timeout=1)
+  def __init__(self, serial_port, rtscts=None):
+    if not rtscts:
+      rtscts = int(os.getenv('RFSPY_RTSCTS', 1))
+
+    self.ser = serial.Serial(serial_port, 19200, rtscts=rtscts, timeout=1)
     self.buf = bytearray()
 
   def do_command(self, command, param=""): 
