@@ -1,19 +1,7 @@
+SERIAL_TYPE := spi1_alt2
+SERIAL_PARAMS := -DUSES_USART1_ISR
+
+BOARD_TYPE := RILEYLINK
+BOARD_PARAMS :=
 
 include common.mk
-
-default: output output/subg_rfspy.hex
-
-CFLAGS=-I. -Ispi1_alt2 --verbose -DRILEYLINK -DUSES_USART1_ISR
-LDFLAGS=--xram-loc 0xf000 --xram-size 0x1000
-
-serial.rel: spi1_alt2/serial.c
-	$(CC) $(CFLAGS) -o output/$@ -c $<
-
-output/subg_rfspy.hex: $(common_modules) serial.rel
-	cd output && $(CC) $(LDFLAGS) $(CFLAGS) $(common_modules) serial.rel -o subg_rfspy.hex
-
-install: output/subg_rfspy.hex
-	cc-tool -n cc1110 --log install.log -ew output/subg_rfspy.hex
-
-test: main.c output
-	gcc -g -o output/test -DNON_NATIVE_TEST main.c
