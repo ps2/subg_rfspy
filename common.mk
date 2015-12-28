@@ -1,6 +1,9 @@
+TARGET_BUILD := ${SERIAL_TYPE}_${BOARD_TYPE}
 
 CC=sdcc
+
 LDFLAGS=--xram-loc 0xf000 --xram-size 0x1000
+CFLAGS=-I. -I${SERIAL_TYPE} --verbose -D${BOARD_TYPE} ${BOARD_PARAMS} ${SERIAL_PARAMS}
 
 default: output output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 
@@ -15,7 +18,7 @@ clean:
 
 # The serial implementation used depends on the TARGET_BUILD parameter, so is built
 # separately from the other .rel files
-serial.rel: ${TARGET_BUILD}/serial.c
+serial.rel: ${SERIAL_TYPE}/serial.c
 	$(CC) $(CFLAGS) -o output/${TARGET_BUILD}/$@ -c $<
 
 output/${TARGET_BUILD}/${TARGET_BUILD}.hex: $(common_modules) serial.rel

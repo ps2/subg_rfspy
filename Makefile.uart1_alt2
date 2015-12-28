@@ -1,4 +1,7 @@
-TARGET_BUILD := uart1_alt2
-CFLAGS=-I. -I${TARGET_BUILD} --verbose -DRILEYLINK
+SERIAL_TYPE := uart1_alt2
+SERIAL_PARAMS :=
+
+BOARD_TYPE := RILEYLINK
+BOARD_PARAMS :=
 
 include common.mk
