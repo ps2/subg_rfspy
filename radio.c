@@ -6,6 +6,15 @@
 #include "delay.h"
 #include "timer.h"
 
+#define MAX_PACKET_LEN 192
+volatile uint8_t __xdata radio_tx_buf[MAX_PACKET_LEN];
+volatile uint8_t radio_tx_buf_len = 0;
+volatile uint8_t radio_tx_buf_idx = 0;
+volatile uint8_t __xdata radio_rx_buf[MAX_PACKET_LEN];
+volatile uint8_t radio_rx_buf_len = 0;
+volatile uint8_t packet_count = 1;
+volatile uint8_t underflow_count = 0;
+
 
 void configure_radio()
 {
@@ -50,15 +59,6 @@ void configure_radio()
   IEN2 |= IEN2_RFIE;
   RFTXRXIE = 1;
 }
-
-#define MAX_PACKET_LEN 192
-volatile uint8_t __xdata radio_tx_buf[MAX_PACKET_LEN];
-volatile uint8_t radio_tx_buf_len = 0;
-volatile uint8_t radio_tx_buf_idx = 0;
-volatile uint8_t __xdata radio_rx_buf[MAX_PACKET_LEN];
-volatile uint8_t radio_rx_buf_len = 0;
-volatile uint8_t packet_count = 1;
-volatile uint8_t underflow_count = 0;
 
 void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
   uint8_t d_byte;
@@ -171,7 +171,26 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
   }
 }
 
-void get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
+void resend_from_tx_buf(uint8_t channel) {
+
+  RFST = RFST_SIDLE;
+  while(MARCSTATE!=MARC_STATE_IDLE);
+
+  CHANNR = channel;
+
+  // Reset idx to beginning of buffer
+  radio_tx_buf_idx = 0;
+  underflow_count = 0;
+
+  // Turn on radio (interrupts should start again)
+  RFST = RFST_STX;
+  while(MARCSTATE!=MARC_STATE_TX);
+
+  // wait for sending to finish
+  while(MARCSTATE!=MARC_STATE_IDLE);
+}
+
+uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
 
   uint8_t read_idx = 0;
   uint8_t d_byte = 0;
@@ -203,8 +222,7 @@ void get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
 
     if (timeout_ms > 0 && timerCounter > timeout_ms && radio_rx_buf_len == 0) {
       RFST = RFST_SIDLE;
-      serial_tx_byte(0);
-      return;
+      return 0;
     }
   
     // Also going to watch serial in case the client wants to interrupt rx
@@ -213,8 +231,9 @@ void get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
       // We will interrupt the RX and go handle the command.
       interrupting_cmd = serial_rx_byte();
       RFST = RFST_SIDLE;
-      return;
+      return 2;
     }
   }
+  return 1;
 }
 

@@ -21,9 +21,14 @@ CommandHandler handlers[] = {
 void cmd_get_packet() {
   uint8_t channel;
   uint16_t timeout_ms;
+  uint8_t result;
   channel = serial_rx_byte();
   timeout_ms = serial_rx_word();
-  get_packet_and_write_to_serial(channel, timeout_ms);
+  result = get_packet_and_write_to_serial(channel, timeout_ms);
+  if (result == 0) {
+    // Timed out
+    serial_tx_byte(0);
+  }
 }
 
 void cmd_get_state() {
@@ -68,12 +73,28 @@ void cmd_send_and_listen() {
   uint8_t delay_ms;
   uint8_t listen_channel;
   uint16_t timeout_ms;
+  uint8_t retry_count;
+  uint8_t result;
   
   send_channel = serial_rx_byte();
   repeat_count = serial_rx_byte();
   delay_ms = serial_rx_byte();
   listen_channel = serial_rx_byte();
   timeout_ms = serial_rx_word();
+  retry_count = serial_rx_byte();
+
   send_packet_from_serial(send_channel, repeat_count, delay_ms);
-  get_packet_and_write_to_serial(listen_channel, timeout_ms);
+  result = get_packet_and_write_to_serial(listen_channel, timeout_ms);
+
+  while (result == 0 && retry_count > 0) {
+    resend_from_tx_buf(send_channel);
+    result = get_packet_and_write_to_serial(listen_channel, timeout_ms);
+    retry_count--;
+  }
+
+  if (result == 0) {
+    // Timed out, and no retries left
+    serial_tx_byte(0);
+  }
 }
+
