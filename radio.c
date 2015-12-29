@@ -67,7 +67,7 @@ void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
     if (radio_rx_buf_len == 0) {
       radio_rx_buf[0] = RSSI; 
       if (radio_rx_buf[0] == 0) {
-        radio_rx_buf[0] == 1;
+        radio_rx_buf[0] = 1; // Prevent RSSI of 0 from triggering end-of-packet
       }
       radio_rx_buf[1] = packet_count; 
       packet_count++;
@@ -104,7 +104,6 @@ void rf_isr(void) __interrupt RF_VECTOR {
   if(RFIF & 0x80) // TX underflow
   {
     // Underflow
-    BLUE_LED = 1;
     RFST = RFST_SIDLE;
     RFIF &= ~0x80; // Clear module interrupt flag
   }
@@ -131,6 +130,7 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
   while(MARCSTATE!=MARC_STATE_IDLE);
 
   CHANNR = channel;
+  BLUE_LED = 1;
 
   while (1) {
     s_byte = serial_rx_byte();
@@ -169,6 +169,7 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
     while(MARCSTATE!=MARC_STATE_IDLE);
     repeat_count--;
   }
+  BLUE_LED = 0;
 }
 
 void resend_from_tx_buf(uint8_t channel) {
@@ -222,6 +223,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
 
     if (timeout_ms > 0 && timerCounter > timeout_ms && radio_rx_buf_len == 0) {
       RFST = RFST_SIDLE;
+      GREEN_LED = 0;
       return 0;
     }
   
@@ -231,9 +233,11 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
       // We will interrupt the RX and go handle the command.
       interrupting_cmd = serial_rx_byte();
       RFST = RFST_SIDLE;
+      GREEN_LED = 0;
       return 2;
     }
   }
+  GREEN_LED = 0;
   return 1;
 }
 
