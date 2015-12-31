@@ -214,6 +214,9 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
       GREEN_LED = 1;
 
       d_byte = radio_rx_buf[read_idx];
+      if (d_byte == 0 && read_idx == 1) {
+        serial_tx_byte(ERROR_ZERO_DATA);  // Error flag: first byte of packet is 0?
+      }
       serial_tx_byte(d_byte);
       read_idx++;
       if (read_idx > 1 && read_idx == radio_rx_buf_len && d_byte == 0) {

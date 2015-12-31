@@ -94,6 +94,7 @@ void cmd_send_and_listen() {
 
   if (result == 0) {
     // Timed out, and no retries left
+    serial_tx_byte(ERROR_RX_TIMEOUT);
     serial_tx_byte(0);
   }
 }
