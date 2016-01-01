@@ -35,7 +35,7 @@ void configure_radio()
   MDMCFG3   = 0x66; // modem configuration
   MDMCFG2   = 0x33; // modem configuration
   MDMCFG1   = 0x61; // modem configuration
-  MDMCFG0   = 0xe6; // modem configuration
+  MDMCFG0   = 0x7E; // modem configuration
   DEVIATN   = 0x15; // modem deviation setting
   MCSM2     = 0x07;
   MCSM1     = 0x30;
