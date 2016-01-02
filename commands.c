@@ -15,7 +15,9 @@ CommandHandler handlers[] = {
   /* 2 */ cmd_get_version,
   /* 3 */ cmd_get_packet,
   /* 4 */ cmd_send_packet,
-  /* 5 */ cmd_send_and_listen
+  /* 5 */ cmd_send_and_listen,
+  /* 6 */ cmd_update_register,
+  /* 7 */ cmd_reset
 };
 
 void cmd_get_packet() {
@@ -97,5 +99,121 @@ void cmd_send_and_listen() {
     serial_tx_byte(ERROR_RX_TIMEOUT);
     serial_tx_byte(0);
   }
+}
+
+void cmd_update_register() {
+  uint8_t addr;
+  uint8_t value;
+  uint8_t rval;
+  addr = serial_rx_byte();
+  value = serial_rx_byte();
+  rval = 1;
+  switch(addr) {
+    case 0x00:
+      SYNC1 = value;
+      break;
+    case 0x01:
+      SYNC0 = value;
+      break;
+    case 0x02:
+      PKTLEN = value;
+      break;
+    case 0x03:
+      PKTCTRL1 = value;
+      break;
+    case 0x04:
+      PKTCTRL0 = value;
+      break;
+    case 0x05:
+      ADDR = value;
+      break;
+    case 0x06:
+      CHANNR = value;
+      break;
+    case 0x07:
+      FSCTRL1 = value;
+      break;
+    case 0x08:
+      FSCTRL0 = value;
+      break;
+    case 0x09:
+      FREQ2 = value;
+      break;
+    case 0x0A:
+      FREQ1 = value;
+      break;
+    case 0x0B:
+      FREQ0 = value;
+      break;
+    case 0x0C:
+      MDMCFG4 = value;
+      break;
+    case 0x0D:
+      MDMCFG3 = value;
+      break;
+    case 0x0E:
+      MDMCFG2 = value;
+      break;
+    case 0x0F:
+      MDMCFG1 = value;
+      break;
+    case 0x10:
+      MDMCFG0 = value;
+      break;
+    case 0x11:
+      DEVIATN = value;
+      break;
+    case 0x12:
+      MCSM2 = value;
+      break;
+    case 0x13:
+      MCSM1 = value;
+      break;
+    case 0x14:
+      MCSM0 = value;
+      break;
+    case 0x15:
+      FOCCFG = value;
+      break;
+    case 0x16:
+      BSCFG = value;
+      break;
+    case 0x17:
+      AGCCTRL2 = value;
+      break;
+    case 0x18:
+      AGCCTRL1= value;
+      break;
+    case 0x19:
+      AGCCTRL0 = value;
+      break;
+    case 0x1A:
+      FREND1 = value;
+      break;
+    case 0x1B:
+      FREND0 = value;
+      break;
+    case 0x1C:
+      FSCAL3 = value;
+      break;
+    case 0x1D:
+      FSCAL2 = value;
+      break;
+    case 0x1E:
+      FSCAL1 = value;
+      break;
+    case 0x1F:
+      FSCAL0 = value;
+      break;
+    default:
+      rval = 2;
+  }
+  serial_tx_byte(rval);
+  serial_tx_byte(0);
+}
+
+void cmd_reset() {
+  EA = 0;
+  WDCTL = BIT3 | BIT0;
 }
 

@@ -15,7 +15,6 @@ volatile uint8_t radio_rx_buf_len = 0;
 volatile uint8_t packet_count = 1;
 volatile uint8_t underflow_count = 0;
 
-
 void configure_radio()
 {
   /* RF settings SoC: CC1110 */
@@ -28,10 +27,12 @@ void configure_radio()
   CHANNR    = 0x02; // channel number
   FSCTRL1   = 0x06; // frequency synthesizer control
   FSCTRL0   = 0x00;
-  FREQ2     = 0x26; // frequency control word, high byte
-  FREQ1     = 0x2F; // frequency control word, middle byte
-  FREQ0     = 0xE4; // frequency control word, low byte
-  MDMCFG4   = 0x89; // 187.5 kHz rx filter bandwidth
+  FREQ2     = 0x26; // 916.541MHz is midpoint between freq of pump in free space,
+  FREQ1     = 0x30; // and pump held close to the body.
+  FREQ0     = 0x70; // 
+  MDMCFG4   = 0x99; // 150.5 kHz rx filter bandwidth. Narrower can improve range,
+                    // but then freq must be dialed in more tightly, which does not
+                    // allow for variation we see with pump in free space vs on body.
   MDMCFG3   = 0x66; // modem configuration
   MDMCFG2   = 0x33; // modem configuration
   MDMCFG1   = 0x61; // modem configuration
@@ -41,7 +42,7 @@ void configure_radio()
   MCSM1     = 0x30;
   MCSM0     = 0x18; // main radio control state machine configuration
   FOCCFG    = 0x17; // frequency offset compensation configuration BSCFG     = 0x6C;
-  FREND1    = 0x56; // front end tx configuration
+  FREND1    = 0xB6; // front end tx configuration
   FREND0    = 0x11; // front end tx configuration
   FSCAL3    = 0xE9; // frequency synthesizer calibration
   FSCAL2    = 0x2A; // frequency synthesizer calibration
@@ -52,7 +53,7 @@ void configure_radio()
   PA_TABLE0 = 0x00; // needs to be explicitly set!
   PA_TABLE1 = 0xC0; // pa power setting 10 dBm
 
-  AGCCTRL2 = 0x03; // 0x03 to 0x07 - default: 0x03
+  AGCCTRL2 = 0x07; // 0x03 to 0x07 - default: 0x03
   AGCCTRL1 = 0x00; // 0x00         - default: 0x40
   AGCCTRL0 = 0x91; // 0x91 or 0x92 - default: 0x91
 
