@@ -1,0 +1,7 @@
+SERIAL_TYPE := uart1_alt2
+SERIAL_PARAMS :=
+
+BOARD_TYPE := RILEYLINK
+BOARD_PARAMS :=
+
+include common.mk

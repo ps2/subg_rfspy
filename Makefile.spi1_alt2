@@ -1,0 +1,7 @@
+SERIAL_TYPE := spi1_alt2
+SERIAL_PARAMS := -DUSES_USART1_ISR
+
+BOARD_TYPE := RILEYLINK
+BOARD_PARAMS :=
+
+include common.mk
