@@ -77,7 +77,7 @@ void cmd_send_and_listen() {
   uint16_t timeout_ms;
   uint8_t retry_count;
   uint8_t result;
-  
+
   send_channel = serial_rx_byte();
   repeat_count = serial_rx_byte();
   delay_ms = serial_rx_byte();
