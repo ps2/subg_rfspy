@@ -24,12 +24,10 @@ void configure_radio()
   PKTCTRL1  = 0x00; // packet automation control
   PKTCTRL0  = 0x00; // packet automation control
   ADDR      = 0x00;
-  CHANNR    = 0x02; // channel number
+  // CHANNR: See the locale-specific section below
   FSCTRL1   = 0x06; // frequency synthesizer control
   FSCTRL0   = 0x00;
-  FREQ2     = 0x26; // 916.541MHz is midpoint between freq of pump in free space,
-  FREQ1     = 0x30; // and pump held close to the body.
-  FREQ0     = 0x70; // 
+  // FREQ0/FREQ1/FREQ2: See the locale-specific section below
   MDMCFG4   = 0x99; // 150.5 kHz rx filter bandwidth. Narrower can improve range,
                     // but then freq must be dialed in more tightly, which does not
                     // allow for variation we see with pump in free space vs on body.
@@ -51,11 +49,25 @@ void configure_radio()
   TEST1     = 0x31; // various test settings
   TEST0     = 0x09; // various test settings
   PA_TABLE0 = 0x00; // needs to be explicitly set!
-  PA_TABLE1 = 0xC0; // pa power setting 10 dBm
+  // PA_TABLE1: See the locale-specific section below
 
   AGCCTRL2 = 0x07; // 0x03 to 0x07 - default: 0x03
   AGCCTRL1 = 0x00; // 0x00         - default: 0x40
   AGCCTRL0 = 0x91; // 0x91 or 0x92 - default: 0x91
+
+#if US_RADIO_LOCALE
+  FREQ2     = 0x26; // 916.541MHz is midpoint between freq of pump in free space,
+  FREQ1     = 0x30; // and pump held close to the body.
+  FREQ0     = 0x70; //
+  CHANNR    = 0x02; // channel number
+  PA_TABLE1 = 0xC0; // pa power setting 10 dBm
+#else
+  FREQ2     = 0x24; // frequency control word, high byte
+  FREQ1     = 0x2E; // frequency control word, middle byte
+  FREQ0     = 0x38; // frequency control word, low byte
+  CHANNR    = 0x00; // channel number
+  PA_TABLE1 = 0x50; // Max configurable power output at this frequency is 0x50
+#endif
 
   IEN2 |= IEN2_RFIE;
   RFTXRXIE = 1;
