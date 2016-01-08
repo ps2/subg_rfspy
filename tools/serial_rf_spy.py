@@ -16,7 +16,12 @@ class SerialRfSpy:
     if not rtscts:
       rtscts = int(os.getenv('RFSPY_RTSCTS', 1))
 
+    # Settings for RileyLink with rtscts
     self.ser = serial.Serial(serial_port, 19200, rtscts=rtscts, timeout=1)
+
+    # Settings for usb ti stick
+    #self.ser = serial.Serial(serial_port, 115200, timeout=1)
+
     self.buf = bytearray()
 
   def do_command(self, command, param=""): 
@@ -50,7 +55,7 @@ class SerialRfSpy:
       if data == "OK":
         print "RileyLink " + data
         break 
-      print "retry"
+      print "retry", len(data), str(data).encode('hex')
  
     while 1:
       self.send_command(self.CMD_GET_VERSION) 
@@ -58,5 +63,5 @@ class SerialRfSpy:
       if len(data) >= 3:
         print "Version: " + data
         break 
-      print "retry"
+      print "retry", len(data), str(data).encode('hex')
 

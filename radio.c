@@ -243,6 +243,9 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
       return 0;
     }
   
+    #ifndef TI_DONGLE
+    #else
+    #endif
     // Also going to watch serial in case the client wants to interrupt rx
     if (SERIAL_DATA_AVAILABLE) {
       // Received a byte from uart while waiting for radio packet
