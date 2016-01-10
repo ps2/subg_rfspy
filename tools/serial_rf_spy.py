@@ -8,9 +8,11 @@ class SerialRfSpy:
 
   CMD_GET_STATE = 1
   CMD_GET_VERSION = 2
-  CMD_SET_CHANNEL = 3
-  CMD_GET_PACKET = 4
-  CMD_SEND_PACKET = 5
+  CMD_GET_PACKET = 3
+  CMD_SEND_PACKET = 4
+  CMD_SEND_AND_LISTEN = 5
+  CMD_UPDATE_REGISTER = 6
+  CMD_RESET = 7
 
   def __init__(self, serial_port, rtscts=None):
     if not rtscts:
