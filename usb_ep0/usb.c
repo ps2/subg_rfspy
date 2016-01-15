@@ -43,7 +43,8 @@ struct usb_setup {
   uint16_t  value;
   uint16_t  index;
   uint16_t  length;
-} __xdata usb_setup;
+}; // } __xdata usb_setup;
+__xdata static struct usb_setup usb_setup;
 
 __xdata uint8_t usb_ep0_state;
 const uint8_t * __xdata usb_ep0_in_data;
@@ -85,7 +86,8 @@ __xdata static struct usb_line_coding usb_line_coding = {115200, 0, 0, 8};
 // Walk through the list of descriptors and find a match
 static void usb_get_descriptor(uint16_t value)
 {
-  uint8_t const   *__xdata descriptor;
+  __xdata uint8_t * descriptor;
+  // uint8_t   *__xdata descriptor;
   __xdata uint8_t   type = value >> 8;
   __xdata uint8_t   index = value;
 

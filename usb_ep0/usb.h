@@ -118,22 +118,23 @@ struct usb_line_coding {
 
 #define USB_READ_AGAIN	((char) -1)
 
-#define USB_VID 0xFFFE
-#define USB_PID 0x000A
+#define USB_VID 0x1d50
+#define USB_PID 0x8001
 
 // iManufacturer
-#define USB_iManufacturer_LEN 0x10
-#define USB_iManufacturer_STRING "JobyGPS"
-#define USB_iManufacturer_UCS2 'J', 0, 'o', 0, 'b', 0, 'y', 0, 'G', 0, 'P', 0, 'S', 0
+#define USB_iManufacturer_LEN 0x19
+#define USB_iManufacturer_STRING "Nightscout"
+#define USB_iManufacturer_UCS2 'N', 0, 'i', 0, 'g', 0, 'h', 0, 't', 0, 's', 0, 'c', 0, 'o', 0, 'u', 0, 't', 0
 // iProduct
-#define USB_iProduct_LEN 0x1C
-#define USB_iProduct_STRING "CC Bootloader"
-#define USB_iProduct_UCS2 'C', 0, 'C', 0, ' ', 0, 'B', 0, 'o', 0, 'o', 0, 't', 0, 'l', 0, 'o', 0, 'a', 0, 'd', 0, 'e', 0, 'r', 0
+#define USB_iProduct_LEN 0x16
+#define USB_iProduct_STRING "subg_rfspy"
+#define USB_iProduct_UCS2 's', 0, 'u', 0, 'b', 0, 'g', 0, '_', 0, 'r', 0, 'f', 0, 's', 0, 'p', 0, 'y', 0
 // iSerial
 #define USB_iSerial_LEN 0x0e
-#define USB_iSerial_STRING "000001"
-#define USB_iSerial_UCS2 '0', 0, '0', 0, '0', 0, '0', 0, '0', 0, '1', 0
+#define USB_iSerial_STRING "000002"
+#define USB_iSerial_UCS2 '0', 0, '0', 0, '0', 0, '0', 0, '0', 0, '2', 0
 
-extern __code __at(0x00aa) uint8_t usb_descriptors[];
+// extern __code __at(0x00aa) uint8_t usb_descriptors[];
+extern __xdata uint8_t usb_descriptors[];
 
 #endif // _USB_H_
