@@ -19,10 +19,11 @@ clean:
 # The serial implementation used depends on the TARGET_BUILD parameter, so is built
 # separately from the other .rel files
 serial.rel: ${SERIAL_TYPE}/serial.c
-	$(CC) $(CFLAGS) -o output/${TARGET_BUILD}/$@ -c $<
+	# ${REL}
+	$(CC) $(CFLAGS) -o output/${TARGET_BUILD}/$@ -c $< $(REL)
 
-output/${TARGET_BUILD}/${TARGET_BUILD}.hex: $(common_modules) serial.rel
-	cd output/${TARGET_BUILD} && $(CC) $(LDFLAGS) $(CFLAGS) $(common_modules) serial.rel -o ${TARGET_BUILD}.hex
+output/${TARGET_BUILD}/${TARGET_BUILD}.hex: $(common_modules) $(REL) serial.rel
+	cd output/${TARGET_BUILD} && $(CC) $(LDFLAGS) $(CFLAGS) $(common_modules) $(REL) serial.rel  -o ${TARGET_BUILD}.hex
 
 install: output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 	sudo cc-tool -n cc1110 --log install.log -ew output/${TARGET_BUILD}/${TARGET_BUILD}.hex
