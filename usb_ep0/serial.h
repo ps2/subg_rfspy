@@ -1,7 +1,8 @@
 #ifndef SERIAL_H
 #define SERIAL_H
 
-const int SERIAL_DATA_AVAILABLE = 0;
+extern int SERIAL_DATA_AVAILABLE ;
+// = 0;
 
 void configure_serial();
 void serial_tx_byte(uint8_t);

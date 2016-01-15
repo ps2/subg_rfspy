@@ -17,6 +17,8 @@ void rx1_isr(void) __interrupt URX1_VECTOR;
 void tx1_isr(void) __interrupt UTX1_VECTOR;
 #endif
 
+#ifdef TI_DONGLE
+#endif
 int main(void)
 {
 

@@ -5,12 +5,19 @@
 #include "radio.h"
 #include "hal.h"
 #include "usb.h"
+#include "usb.h"
+
+extern int SERIAL_DATA_AVAILABLE = 0;
 
 void configure_serial()
 {
 
+  setup_led( );
+  GREEN_LED = 1;
+  GREEN_LED = 0;
   usb_init( );
   usb_up( );
+  /// GREEN_LED = 1;
 
 }
 
