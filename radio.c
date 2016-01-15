@@ -232,7 +232,6 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
     }
   
     #ifndef TI_DONGLE
-      flush_serial( );
     #else
     #endif
     // Also going to watch serial in case the client wants to interrupt rx

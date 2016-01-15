@@ -29,10 +29,6 @@ class SerialRfSpy:
     if len(param) > 0:
       self.ser.write(param)
 
-    self.ser.write(chr(command))
-    if len(param) > 0:
-      self.ser.write(param)
-
   def get_response(self, timeout=0): 
     start = time.time()
     while 1:
@@ -55,7 +51,7 @@ class SerialRfSpy:
       if data == "OK":
         print "RileyLink " + data
         break 
-      print "retry"
+      print "retry", len(data), str(data).encode('hex')
  
     while 1:
       self.send_command(self.CMD_GET_VERSION) 
@@ -63,5 +59,5 @@ class SerialRfSpy:
       if len(data) >= 3:
         print "Version: " + data
         break 
-      print "retry"
+      print "retry", len(data), str(data).encode('hex')
 
