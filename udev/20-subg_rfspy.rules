@@ -1,0 +1,8 @@
+# TI_DONGLE board with subg_rfspy usb firmware
+# SUBSYSTEMS=="usb" ATTRS{idVendor}=="1d50" ATTRS{idProduct}=="8001" MODE:="0660" SYMLINK+="RFSPY%n", GROUP="dialout" ENV{ID_MM_DEVICE_IGNORE}="1"
+# create a symlink to the ttyUSB device created automatically above
+ACTION=="add",                                       \
+  SUBSYSTEM=="tty", \
+  ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="8001", \
+  GROUP="dialout", \
+  SYMLINK+="RFSPY%n"
