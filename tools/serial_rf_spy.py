@@ -29,6 +29,10 @@ class SerialRfSpy:
     if len(param) > 0:
       self.ser.write(param)
 
+    self.ser.write(chr(command))
+    if len(param) > 0:
+      self.ser.write(param)
+
   def get_response(self, timeout=0): 
     start = time.time()
     while 1:

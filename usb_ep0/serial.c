@@ -22,31 +22,39 @@ void configure_serial()
 
 }
 
-uint8_t serial_has_bytes() {
+uint8_t serial_has_bytes()
+{
 
-  GREEN_LED ^= 1;
-  led_on( );
+  usb_flush( );
   if (usb_pollchar() == USB_READ_AGAIN) {
-    led_off( );
+    GREEN_LED = 0;
     return 0;
   }
-  led_on( );
+  GREEN_LED = 1;
   return 1;
 }
 
 
 uint8_t serial_rx_byte() {
   // return (uint8_t) usb_getc( );
-  return (uint8_t) usb_getchar( );
+  char c =  usb_getchar( );
+  return (uint8_t) c;
 } 
 
 uint16_t serial_rx_word() {
   return (serial_rx_byte() << 8) + serial_rx_byte();
 }
 
+void flush_serial( ) {
+  GREEN_LED ^= 1;
+  usb_flush( );
+  GREEN_LED ^= 1;
+}
+
 void serial_tx_byte(uint8_t tx_byte) {
   // return usb_putc(tx_byte);
-  return usb_putchar( (char) tx_byte);
+  usb_putchar(  tx_byte);
+  usb_flush( );
 }
 
 void serial_tx_str(const char *str) {
@@ -55,5 +63,6 @@ void serial_tx_str(const char *str) {
     str++;
   }
   serial_tx_byte(0);
+  usb_flush( );
 }
 

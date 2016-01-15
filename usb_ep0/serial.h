@@ -10,5 +10,6 @@ void run_command_from_serial();
 uint8_t serial_rx_byte();
 uint8_t serial_has_bytes();
 uint16_t serial_rx_word();
+void flush_serial( );
 
 #endif
