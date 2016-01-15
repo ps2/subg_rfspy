@@ -6,7 +6,6 @@ BOARD_PARAMS := -DTI_DONGLE
 
 
 SRC = \
-  clock_init.c \
   hal.c \
   usb.c \
   usb_descriptors.c
@@ -25,9 +24,6 @@ PMAP=$(PROGS:.hex=.map)
 PMEM=$(PROGS:.hex=.mem)
 PAOM=$(PROGS:.hex=)
 include common.mk
-
-clock_init.rel: ${SERIAL_TYPE}/clock_init.c
-	$(CC) $(CFLAGS) -o output/${TARGET_BUILD}/$@ -c $<
 
 hal.rel: ${SERIAL_TYPE}/hal.c
 	$(CC) $(CFLAGS) -o output/${TARGET_BUILD}/$@ -c $<

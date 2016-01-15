@@ -33,6 +33,8 @@ void usb_flush();
 void usb_putstr(char* buff);
 void usb_readline(char* buff);
 
+char usb_pollchar();
+
 // End external interface
 
 // USB interrupt handler

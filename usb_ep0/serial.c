@@ -5,22 +5,35 @@
 #include "radio.h"
 #include "hal.h"
 #include "usb.h"
-#include "clock_init.h"
 
-extern int SERIAL_DATA_AVAILABLE = 0;
+// extern int SERIAL_DATA_AVAILABLE = 0;
 
 void configure_serial()
 {
 
   setup_led( );
   GREEN_LED = 1;
-  // clock_init( );
   GREEN_LED = 0;
   usb_init( );
+  usb_enable( );
   usb_up( );
+  usb_flush( );
   /// GREEN_LED = 1;
 
 }
+
+uint8_t serial_has_bytes() {
+
+  GREEN_LED ^= 1;
+  led_on( );
+  if (usb_pollchar() == USB_READ_AGAIN) {
+    led_off( );
+    return 0;
+  }
+  led_on( );
+  return 1;
+}
+
 
 uint8_t serial_rx_byte() {
   // return (uint8_t) usb_getc( );

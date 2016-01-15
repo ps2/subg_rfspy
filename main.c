@@ -45,6 +45,7 @@ int main(void)
   configure_serial();
 
   while(1) {
+    GREEN_LED ^= 1;
     get_command();
   }
 }
