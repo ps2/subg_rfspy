@@ -14,7 +14,7 @@ void configure_serial()
 
   setup_led( );
   GREEN_LED = 1;
-  clock_init( );
+  // clock_init( );
   GREEN_LED = 0;
   usb_init( );
   usb_up( );
