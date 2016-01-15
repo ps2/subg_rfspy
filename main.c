@@ -18,6 +18,7 @@ void tx1_isr(void) __interrupt UTX1_VECTOR;
 #endif
 
 #ifdef TI_DONGLE
+void usb_isr() __interrupt 6;
 #endif
 int main(void)
 {

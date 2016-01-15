@@ -85,7 +85,7 @@ __xdata static struct usb_line_coding usb_line_coding = {115200, 0, 0, 8};
 // Walk through the list of descriptors and find a match
 static void usb_get_descriptor(uint16_t value)
 {
-  const uint8_t   *__xdata descriptor;
+  uint8_t const   *__xdata descriptor;
   __xdata uint8_t   type = value >> 8;
   __xdata uint8_t   index = value;
 
