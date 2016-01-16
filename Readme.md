@@ -1,6 +1,6 @@
 # UART on RileyLink
 
-Perform the build. The output file will be stored at output/uart1_alt2_RILEYLINK/uart1_alt2_RILEYLINK.hex
+Perform the build. The output file will be stored at output/uart1_alt2_RILEYLINK_US/uart1_alt2_RILEYLINK_US.hex
 
     make -f Makefile.uart1_alt2
 
@@ -16,9 +16,16 @@ UART/SPI pins exposed on cc1110 debug header:
     P1.6 - TX / MOSI
     P1.7 - RX / MISO
 
+# Radio Frequency Selection
+
+This code defaults to building firmware that works with US-based pumps. If your
+pump model number ends with 'WW' then you need a 'WorldWide' firmware:
+
+    make -f Makefile.uart1_alt2 RADIO_LOCALE=WW
+
 # UART on the WirelessThings ERF stick
 
-Perform the build. The output file will be stored at output/uart0_alt1_SRF_ERF/uart0_alt1_SRF_ERF.hex
+Perform the build. The output file will be stored at output/uart0_alt1_SRF_ERF_US/uart0_alt1_SRF_ERF_US.hex
 
     make -f Makefile.uart0_alt1 BOARD_TYPE=SRF_ERF
 
