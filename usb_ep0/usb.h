@@ -124,7 +124,7 @@ struct usb_line_coding {
 #define USB_PID 0x8001
 
 // iManufacturer
-#define USB_iManufacturer_LEN 0x19
+#define USB_iManufacturer_LEN 0x16
 #define USB_iManufacturer_STRING "Nightscout"
 #define USB_iManufacturer_UCS2 'N', 0, 'i', 0, 'g', 0, 'h', 0, 't', 0, 's', 0, 'c', 0, 'o', 0, 'u', 0, 't', 0
 // iProduct
