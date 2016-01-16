@@ -3,6 +3,8 @@ ifeq ($(RADIO_LOCALE),US)
 	RADIO_LOCALE_DEF := -DUS_RADIO_LOCALE
 endif
 
+TARGET_DEVICE ?= CC1110
+
 CODE_LOC := 0x000
 CODE_LOC_NAME := STDLOC
 
@@ -34,7 +36,7 @@ output/${TARGET_BUILD}/${TARGET_BUILD}.hex: $(common_modules) $(REL) serial.rel
 	cd output/${TARGET_BUILD} && $(CC) $(LDFLAGS) $(CFLAGS) $(common_modules) $(REL) serial.rel  -o ${TARGET_BUILD}.hex
 
 install: output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
-	sudo cc-tool -n cc1110 --log install.log -ew output/${TARGET_BUILD}/${TARGET_BUILD}.hex
+	sudo cc-tool -n ${TARGET_DEVICE} --log install.log -ew output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 
 test: main.c output
 	gcc -g -o output/${TARGET_BUILD}/test -DNON_NATIVE_TEST main.c
