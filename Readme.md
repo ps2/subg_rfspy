@@ -48,3 +48,33 @@ to map things to the correct ERF locations.
 To install the firmware:
 
     make -f Makefile.uart0_alt1 BOARD_TYPE=SRF_ERF install
+
+# CCTL Support
+
+If you have [CCTL](https://github.com/oskarpearson/cctl/tree/24mhz_clock_and_erf_stick_hack)
+on your device stick, you can re-program the firmware without requiring the cc-debugger.
+To compile firmware that's compatible with CCTL, set the CODE_LOC and CODE_LOC_NAME parameters:
+
+    make -f Makefile.uart0_alt1 BOARD_TYPE=SRF_ERF CODE_LOC=0x400 CODE_LOC_NAME=CCTL
+
+Then, compile the cctl writer program:
+
+    cd /where/you/want/the/cctl/code/to/live
+    git clone https://github.com/oskarpearson/cctl.git
+    cd cctl
+    git checkout 24mhz_clock_and_erf_stick_hack
+    cd cctl-prog
+    make clean all
+
+Then connect the ERF stick over the serial port (normally /dev/ttyUSB0), and write the firmware:
+
+    ./cctl-prog -d /dev/ttyUSB0 -f /path/to/subg_rfspy/output/uart0_alt1_SRF_ERF_WW_CCTL/uart0_alt1_SRF_ERF_WW_CCTL.hex
+    Waiting 10s for bootloader, reset board now
+
+Reset the board by disconnecting the +ve lead, and you should then see:
+
+    ....Bootloader detected
+    Erasing, programming and verifying page 1
+    ...
+    Erasing page 31
+    Programming complete
