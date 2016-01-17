@@ -17,6 +17,9 @@ void rx1_isr(void) __interrupt URX1_VECTOR;
 void tx1_isr(void) __interrupt UTX1_VECTOR;
 #endif
 
+#ifdef TI_DONGLE
+void usb_isr() __interrupt 6;
+#endif
 int main(void)
 {
 
@@ -42,6 +45,7 @@ int main(void)
   configure_serial();
 
   while(1) {
+    GREEN_LED ^= 1;
     get_command();
   }
 }

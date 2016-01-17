@@ -38,7 +38,7 @@ void cmd_get_state() {
 }
 
 void cmd_get_version() {
-  serial_tx_str("subg_rfspy 0.3");
+  serial_tx_str("subg_rfspy 0.4");
 }
 
 void do_cmd(uint8_t cmd) {
@@ -77,7 +77,7 @@ void cmd_send_and_listen() {
   uint16_t timeout_ms;
   uint8_t retry_count;
   uint8_t result;
-  
+
   send_channel = serial_rx_byte();
   repeat_count = serial_rx_byte();
   delay_ms = serial_rx_byte();
