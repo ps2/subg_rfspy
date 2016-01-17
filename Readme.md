@@ -1,3 +1,9 @@
+# Pre-Requisites for Building subg_rfspy
+
+[sdcc] (http://sdcc.sourceforge.net/) package is required for this build.
+
+    sudo apt-get install sdcc
+
 # UART on RileyLink
 
 Perform the build. The output file will be stored at output/uart1_alt2_RILEYLINK_US/uart1_alt2_RILEYLINK_US.hex
