@@ -27,9 +27,9 @@ void cmd_get_packet() {
   channel = serial_rx_byte();
   timeout_ms = serial_rx_word();
   result = get_packet_and_write_to_serial(channel, timeout_ms);
-  if (result == 0) {
-    // Timed out
-    serial_tx_byte(0);
+  if (result != 0) {
+    serial_rx_byte(result);
+    serial_rx_byte(0);
   }
 }
 
@@ -38,7 +38,7 @@ void cmd_get_state() {
 }
 
 void cmd_get_version() {
-  serial_tx_str("subg_rfspy 0.4");
+  serial_tx_str("subg_rfspy 0.5");
 }
 
 void do_cmd(uint8_t cmd) {
@@ -88,15 +88,15 @@ void cmd_send_and_listen() {
   send_packet_from_serial(send_channel, repeat_count, delay_ms);
   result = get_packet_and_write_to_serial(listen_channel, timeout_ms);
 
-  while (result == 0 && retry_count > 0) {
+  while (result == ERROR_RX_TIMEOUT && retry_count > 0) {
     resend_from_tx_buf(send_channel);
     result = get_packet_and_write_to_serial(listen_channel, timeout_ms);
     retry_count--;
   }
 
-  if (result == 0) {
-    // Timed out, and no retries left
-    serial_tx_byte(ERROR_RX_TIMEOUT);
+  if (result != 0) {
+    // Error, and no retries left
+    serial_tx_byte(result);
     serial_tx_byte(0);
   }
 }

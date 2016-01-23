@@ -208,6 +208,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
 
   uint8_t read_idx = 0;
   uint8_t d_byte = 0;
+  uint8_t rval = 0;
 
   reset_timer();
 
@@ -226,21 +227,22 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
     if (radio_rx_buf_len > read_idx) {
       GREEN_LED = 1;
 
-      d_byte = radio_rx_buf[read_idx];
-      if (d_byte == 0 && read_idx == 1) {
-        serial_tx_byte(ERROR_ZERO_DATA);  // Error flag: first byte of packet is 0?
+      if (read_idx == 0 && radio_rx_buf_len > 2 && radio_rx_buf[2] == 0) {
+        rval = ERROR_ZERO_DATA;
+        break;
       }
+      d_byte = radio_rx_buf[read_idx];
       serial_tx_byte(d_byte);
       read_idx++;
       if (read_idx > 1 && read_idx == radio_rx_buf_len && d_byte == 0) {
+        // End of packet.
         break;
       }
     }
 
     if (timeout_ms > 0 && timerCounter > timeout_ms && radio_rx_buf_len == 0) {
-      RFST = RFST_SIDLE;
-      GREEN_LED = 0;
-      return 0;
+      rval = ERROR_TIMEOUT;
+      break;
     }
   
     #ifndef TI_DONGLE
@@ -251,12 +253,11 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
       // Received a byte from uart while waiting for radio packet
       // We will interrupt the RX and go handle the command.
       interrupting_cmd = serial_rx_byte();
-      RFST = RFST_SIDLE;
-      GREEN_LED = 0;
-      return 2;
+      rval = ERROR_CMD_INTERRUPTED;
     }
   }
+  RFST = RFST_SIDLE;
   GREEN_LED = 0;
-  return 1;
+  return rval;
 }
 
