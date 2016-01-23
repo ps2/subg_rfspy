@@ -28,8 +28,8 @@ void cmd_get_packet() {
   timeout_ms = serial_rx_word();
   result = get_packet_and_write_to_serial(channel, timeout_ms);
   if (result != 0) {
-    serial_rx_byte(result);
-    serial_rx_byte(0);
+    serial_tx_byte(result);
+    serial_tx_byte(0);
   }
 }
 

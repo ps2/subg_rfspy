@@ -241,7 +241,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
     }
 
     if (timeout_ms > 0 && timerCounter > timeout_ms && radio_rx_buf_len == 0) {
-      rval = ERROR_TIMEOUT;
+      rval = ERROR_RX_TIMEOUT;
       break;
     }
   
@@ -254,6 +254,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
       // We will interrupt the RX and go handle the command.
       interrupting_cmd = serial_rx_byte();
       rval = ERROR_CMD_INTERRUPTED;
+      break;
     }
   }
   RFST = RFST_SIDLE;
