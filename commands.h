@@ -1,8 +1,9 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
-#define ERROR_RX_TIMEOUT 0xbb
-#define ERROR_ZERO_DATA 0xaa
+#define ERROR_RX_TIMEOUT 0xaa
+#define ERROR_CMD_INTERRUPTED 0xbb
+#define ERROR_ZERO_DATA 0xcc
 
 void get_command();
 
