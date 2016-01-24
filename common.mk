@@ -45,6 +45,6 @@ output:
 	mkdir output
 
 output/${TARGET_BUILD}: output
-	mkdir output/${TARGET_BUILD}/
+	mkdir -p output/${TARGET_BUILD}/
 
 output/${TARGET_BUILD}/%.rel : %.c Makefile
