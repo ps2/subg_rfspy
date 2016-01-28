@@ -66,7 +66,7 @@ void configure_radio()
   FREQ1     = 0x2E; // frequency control word, middle byte
   FREQ0     = 0x38; // frequency control word, low byte
   CHANNR    = 0x00; // channel number
-  PA_TABLE1 = 0x50; // Max configurable power output at this frequency is 0x50
+  PA_TABLE1 = 0xC2; // Max configurable power output at this frequency is 0xC2
 #endif
 
   IEN2 |= IEN2_RFIE;
