@@ -55,6 +55,13 @@ To install the firmware:
 
     make -f Makefile.uart0_alt1 BOARD_TYPE=SRF_ERF install
 
+# USB on support on TI cc1111 USB stick (CC1111EMK868-915) AKA "Don's Dongle"
+
+    make -f Makefile.usb_ep0 install
+
+Shows up as a serial device on linux.
+
+
 # CCTL Support
 
 If you have [CCTL](https://github.com/oskarpearson/cctl/tree/24mhz_clock_and_erf_stick_hack)
