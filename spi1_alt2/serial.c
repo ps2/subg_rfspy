@@ -25,8 +25,8 @@ volatile uint8_t serial_data_available;
 #define SPI_MODE_XFER 2
 volatile uint8_t spi_mode;
 
-volatile uint8_t master_send_size;
-volatile uint8_t slave_send_size;
+volatile uint8_t master_send_size = 0;
+volatile uint8_t slave_send_size = 0;
 
 
 /***************************************************************************
