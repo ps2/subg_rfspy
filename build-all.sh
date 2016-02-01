@@ -9,6 +9,7 @@ set -e
 # USA:
 make -f Makefile.uart1_alt2
 make -f Makefile.uart1_alt2 CODE_LOC=0x400 CODE_LOC_NAME=CCTL
+make -f Makefile.spi1_alt2 
 # Worldwide:
 make -f Makefile.uart1_alt2 RADIO_LOCALE=WW
 make -f Makefile.uart1_alt2 CODE_LOC=0x400 CODE_LOC_NAME=CCTL RADIO_LOCALE=WW
