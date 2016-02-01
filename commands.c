@@ -38,7 +38,7 @@ void cmd_get_state() {
 }
 
 void cmd_get_version() {
-  serial_tx_str("subg_rfspy 0.5");
+  serial_tx_str("subg_rfspy 0.6");
 }
 
 void do_cmd(uint8_t cmd) {
@@ -205,6 +205,12 @@ void cmd_update_register() {
     case 0x1F:
       FSCAL0 = value;
       break;
+    case 0x20:
+      PA_TABLE1 = value;
+      break;
+    case 0x21:
+      PA_TABLE0 = value;
+      break;
     default:
       rval = 2;
   }
@@ -216,4 +222,3 @@ void cmd_reset() {
   EA = 0;
   WDCTL = BIT3 | BIT0;
 }
-
