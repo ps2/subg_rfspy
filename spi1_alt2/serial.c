@@ -179,6 +179,10 @@ uint16_t serial_rx_word() {
   return (serial_rx_byte() << 8) + serial_rx_byte();
 }
 
+uint32_t serial_rx_long() {
+  return serial_rx_word() << 16 + serial_rx_word();
+}
+
 void serial_tx_byte(uint8_t tx_byte) {
   if (output_size >= SPI_BUF_LEN) {
     // drop oldest byte

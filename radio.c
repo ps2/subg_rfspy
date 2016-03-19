@@ -204,7 +204,7 @@ void resend_from_tx_buf(uint8_t channel) {
   while(MARCSTATE!=MARC_STATE_IDLE);
 }
 
-uint8_t get_packet_and_write_to_serial(uint8_t channel, uint16_t timeout_ms) {
+uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms) {
 
   uint8_t read_idx = 0;
   uint8_t d_byte = 0;

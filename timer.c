@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include "hardware.h"
 
-volatile uint16_t timerCounter = 0;
+volatile uint32_t timerCounter = 0;
 
 void init_timer() {
   union {
