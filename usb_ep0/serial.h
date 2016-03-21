@@ -9,7 +9,7 @@ void serial_tx_str(const char *str);
 void run_command_from_serial();
 uint8_t serial_rx_byte();
 uint8_t serial_has_bytes();
-uint16_t serial_rx_word();
+uint32_t serial_rx_long();
 void flush_serial( );
 
 #endif
