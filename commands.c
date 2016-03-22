@@ -22,10 +22,10 @@ CommandHandler handlers[] = {
 
 void cmd_get_packet() {
   uint8_t channel;
-  uint16_t timeout_ms;
+  uint32_t timeout_ms;
   uint8_t result;
   channel = serial_rx_byte();
-  timeout_ms = serial_rx_word();
+  timeout_ms = serial_rx_long();
   result = get_packet_and_write_to_serial(channel, timeout_ms);
   if (result != 0) {
     serial_tx_byte(result);
@@ -38,7 +38,7 @@ void cmd_get_state() {
 }
 
 void cmd_get_version() {
-  serial_tx_str("subg_rfspy 0.6");
+  serial_tx_str("subg_rfspy 0.7");
 }
 
 void do_cmd(uint8_t cmd) {
@@ -74,7 +74,7 @@ void cmd_send_and_listen() {
   uint8_t repeat_count;
   uint8_t delay_ms;
   uint8_t listen_channel;
-  uint16_t timeout_ms;
+  uint32_t timeout_ms;
   uint8_t retry_count;
   uint8_t result;
 
@@ -82,7 +82,7 @@ void cmd_send_and_listen() {
   repeat_count = serial_rx_byte();
   delay_ms = serial_rx_byte();
   listen_channel = serial_rx_byte();
-  timeout_ms = serial_rx_word();
+  timeout_ms = serial_rx_long();
   retry_count = serial_rx_byte();
 
   send_packet_from_serial(send_channel, repeat_count, delay_ms);

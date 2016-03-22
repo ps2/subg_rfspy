@@ -43,6 +43,11 @@ uint16_t serial_rx_word() {
   return (serial_rx_byte() << 8) + serial_rx_byte();
 }
 
+uint32_t serial_rx_long() {
+  return ((uint32_t)serial_rx_word() << 16) + serial_rx_word();
+}
+
+
 void serial_tx_byte(uint8_t tx_byte) {
   UTX1IF = 0;
   U1DBUF = tx_byte;

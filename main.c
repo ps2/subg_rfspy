@@ -17,7 +17,7 @@ void rx1_isr(void) __interrupt URX1_VECTOR;
 void tx1_isr(void) __interrupt UTX1_VECTOR;
 #endif
 
-#ifdef TI_DONGLE
+#if TI_DONGLE || SRF_STICK
 void usb_isr() __interrupt 6;
 #endif
 int main(void)
@@ -49,4 +49,3 @@ int main(void)
     get_command();
   }
 }
-

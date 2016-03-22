@@ -16,6 +16,8 @@ volatile uint8_t output_size = 0;
 volatile uint8_t output_head_idx = 0;
 volatile uint8_t output_tail_idx = 0;
 
+volatile uint8_t ready_to_send = 0;
+
 volatile uint8_t serial_data_available;
 
 #define SPI_MODE_WAIT 0
@@ -23,8 +25,8 @@ volatile uint8_t serial_data_available;
 #define SPI_MODE_XFER 2
 volatile uint8_t spi_mode;
 
-volatile uint8_t master_send_size;
-volatile uint8_t slave_send_size;
+volatile uint8_t master_send_size = 0;
+volatile uint8_t slave_send_size = 0;
 
 
 /***************************************************************************
@@ -96,7 +98,12 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
   value = U1DBUF;
 
   if (spi_mode == SPI_MODE_WAIT && value == 0x99) {
-    slave_send_size = output_size;
+    if (ready_to_send) {
+      slave_send_size = output_size;
+      ready_to_send = 0;
+    } else {
+      slave_send_size = 0;
+    }
     spi_mode = SPI_MODE_SIZE;
     U1DBUF = slave_send_size;
     return;
@@ -172,6 +179,10 @@ uint16_t serial_rx_word() {
   return (serial_rx_byte() << 8) + serial_rx_byte();
 }
 
+uint32_t serial_rx_long() {
+  return ((uint32_t)serial_rx_word() << 16) + serial_rx_word();
+}
+
 void serial_tx_byte(uint8_t tx_byte) {
   if (output_size >= SPI_BUF_LEN) {
     // drop oldest byte
@@ -182,6 +193,9 @@ void serial_tx_byte(uint8_t tx_byte) {
     }
   }
   spi_output_buf[output_head_idx] = tx_byte;
+  if (tx_byte == 0) {
+    ready_to_send = 1;
+  }
   output_head_idx++;
   if (output_head_idx >= SPI_BUF_LEN) {
     output_head_idx = 0;
