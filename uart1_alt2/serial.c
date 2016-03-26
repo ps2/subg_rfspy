@@ -19,9 +19,13 @@ void configure_serial()
   P0SEL &= ~0x3c;
 
   ///////////////////////////////////////////////////////////////
-  // Initialize bitrate (U0BAUD.BAUD_M, U0GCR.BAUD_E)
+  // Initialize bitrate (U1BAUD.BAUD_M, U1GCR.BAUD_E)
   // Bitrate 19200
-  U1BAUD = 163;
+#if SYSTEM_CLOCK_MHZ == 26
+  U1BAUD = 131; 
+#else
+  U1BAUD = 163; 
+#endif
   U1GCR = (U0GCR&~0x1F) | 9; 
   U1UCR |= HARDWARE_FLOW_CONTROL_CONFIG; // Flush, and configure hw flow control
 
