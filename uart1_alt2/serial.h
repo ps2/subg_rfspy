@@ -1,7 +1,9 @@
 #ifndef SERIAL_H
 #define SERIAL_H
 
-#define SERIAL_DATA_AVAILABLE URX1IF
+#define SERIAL_DATA_AVAILABLE serial_data_available
+
+extern volatile uint8_t serial_data_available;
 
 void configure_serial();
 void serial_tx_byte(uint8_t);

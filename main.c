@@ -12,14 +12,18 @@ void t1_isr(void) __interrupt T1_VECTOR;
 void rftxrx_isr(void) __interrupt RFTXRX_VECTOR;
 void rf_isr(void) __interrupt RF_VECTOR;
 
-#ifdef USES_USART1_ISR
+#ifdef USES_USART1_RX_ISR
 void rx1_isr(void) __interrupt URX1_VECTOR;
+#endif 
+
+#ifdef USES_USART1_TX_ISR
 void tx1_isr(void) __interrupt UTX1_VECTOR;
 #endif
 
 #if TI_DONGLE || SRF_STICK
 void usb_isr() __interrupt 6;
 #endif
+
 int main(void)
 {
 
