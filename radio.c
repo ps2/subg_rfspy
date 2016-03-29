@@ -89,8 +89,12 @@ void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
     if (packet_count == 0) {
       packet_count = 1;
     }
-    radio_rx_buf[radio_rx_buf_len] = d_byte;
-    radio_rx_buf_len++;
+    if (radio_rx_buf_len < MAX_PACKET_LEN) {
+      radio_rx_buf[radio_rx_buf_len] = d_byte;
+      radio_rx_buf_len++;
+    } else {
+      // Overflow
+    }
     if (d_byte == 0) {
       RFST = RFST_SIDLE;
       while(MARCSTATE!=MARC_STATE_IDLE);

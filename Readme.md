@@ -29,6 +29,14 @@ pump model number ends with 'WW' then you need a 'WorldWide' firmware:
 
     make -f Makefile.uart1_alt2 RADIO_LOCALE=WW
 
+# cc111x UART1_alt2 connected to the Intel Edison UART_1
+
+    P1.4 - CT / SSN -> UART_1_RTS (GP129) (pin 63)
+    P1.5 - RT / SCK -> UART_1_CTS (GP128) (pin 65)
+    P1.6 - TX / MOSI -> UART_1_RX (GP130) (pin 61)
+    P1.7 - RX / MISO -> UART_1_TX (GP131) (pin 46)
+
+
 # UART on the WirelessThings ERF stick
 
 Perform the build. The output file will be stored at output/uart0_alt1_SRF_ERF_US/uart0_alt1_SRF_ERF_US.hex
