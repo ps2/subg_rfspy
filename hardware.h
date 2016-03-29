@@ -38,6 +38,12 @@
 #define GREEN_LED P1_7
 #define BLUE_LED P1_6
 #define SYSTEM_CLOCK_MHZ 24
+#elif TI_MINIDEV
+#define HARDWARE_FLOW_CONTROL_CONFIG 0xc0; /* 8N1, hw flow control, high stop bit */
+#define HARDWARE_LED_INIT P1DIR |= BIT0|BIT1;
+#define GREEN_LED P1_0
+#define BLUE_LED P1_1
+#define SYSTEM_CLOCK_MHZ 26
 #endif
 
 
