@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 
 if len(sys.argv) < 3:
-  print "usage: get_rfspy_version.py serialport addr value"
+  print "usage: change_setting.py serialport addr value"
   print "Both addr and value should be specified with hex, starting with 0x*"
   sys.exit(2)
 
