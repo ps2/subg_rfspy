@@ -6,15 +6,15 @@
 
 # Building
 
-You'll need to select a build type, like `uart0_alt1`
+You'll need to select a build type, like `uart0_alt1`.  The examples below use this value, but you'll want to use the correct one for your hardware and use case.  See below for different hardware types and use cases.
 
-Perform the build. The output file will be stored at output/<build_type>_RILEYLINK_US/<build_type>_RILEYLINK_US.hex
+Perform the build. The output file will be stored at output/uart0_alt1_RILEYLINK_US/uart0_alt1_RILEYLINK_US.hex
 
-    make -f Makefile.<build_type>
+    make -f Makefile.uart0_alt1
 
 Perform the install:
 
-    make -f Makefile.<build_type> install
+    make -f Makefile.uart0_alt1 install
     
 # Radio Frequency Selection
 
