@@ -4,15 +4,29 @@
 
     sudo apt-get install sdcc
 
-# UART on RileyLink
+# Building
 
-Perform the build. The output file will be stored at output/uart1_alt2_RILEYLINK_US/uart1_alt2_RILEYLINK_US.hex
+You'll need to select a build type, like `uart0_alt1`
 
-    make -f Makefile.uart1_alt2
+Perform the build. The output file will be stored at output/<build_type>_RILEYLINK_US/<build_type>_RILEYLINK_US.hex
+
+    make -f Makefile.<build_type>
 
 Perform the install:
 
-    make -f Makefile.uart1_alt2 install
+    make -f Makefile.<build_type> install
+    
+# Radio Frequency Selection
+
+This code defaults to building firmware that is tuned to 916.5 Mhz. You can also build a 'WorldWide' firmware. This changes the default frequency to 868 and tweaks a few other settings.
+
+    make -f Makefile.uart1_alt2 RADIO_LOCALE=WW
+
+# RileyLink
+
+If you are using a RileyLink via the onboard bluetooth module (which should be loaded with ble_rfspy), then you'll want to use `spi1_alt2` as your build type.
+
+If you are going to manually wire up to the cc1110 on the RileyLink via the debug header, use `uart1_alt2` as your build type, and use the pinout below.
 
 UART/SPI pins exposed on cc1110 debug header:
 
@@ -21,13 +35,6 @@ UART/SPI pins exposed on cc1110 debug header:
     P1.5 - RT / SCK
     P1.6 - TX / MOSI
     P1.7 - RX / MISO
-
-# Radio Frequency Selection
-
-This code defaults to building firmware that works with US-based pumps. If your
-pump model number ends with 'WW' then you need a 'WorldWide' firmware:
-
-    make -f Makefile.uart1_alt2 RADIO_LOCALE=WW
 
 # cc111x UART1_alt2 connected to the Intel Edison UART_1
 
