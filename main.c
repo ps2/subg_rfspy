@@ -6,6 +6,7 @@
 #include "radio.h"
 #include "timer.h"
 #include "commands.h"
+#include "delay.h"
 
 // SDCC needs prototypes of all ISR functions in main. not sure why, but described in section 3.8.1
 void t1_isr(void) __interrupt T1_VECTOR;
@@ -45,11 +46,19 @@ int main(void)
   init_timer();
   EA = 1;
 
+  //LED test
+  GREEN_LED = 1;
+  delay(1000);
+  GREEN_LED = 0;
+  BLUE_LED = 1;
+  delay(1000);
+  BLUE_LED = 0;
+
   configure_radio();
   configure_serial();
 
   while(1) {
-    GREEN_LED ^= 1;
+    //led_set_state(0,2);
     get_command();
   }
 }

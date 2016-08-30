@@ -147,7 +147,7 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
   while(MARCSTATE!=MARC_STATE_IDLE);
 
   CHANNR = channel;
-  BLUE_LED = 1;
+  //led_set_state(1,1);
 
   while (1) {
     s_byte = serial_rx_byte();
@@ -186,7 +186,7 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
     while(MARCSTATE!=MARC_STATE_IDLE);
     repeat_count--;
   }
-  BLUE_LED = 0;
+  //led_set_state(1,0);
 }
 
 void resend_from_tx_buf(uint8_t channel) {
@@ -229,7 +229,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms) {
   while(1) {
     // Waiting for isr to put radio bytes into radio_rx_buf
     if (radio_rx_buf_len > read_idx) {
-      GREEN_LED = 1;
+      //led_set_state(0,1);
 
       if (read_idx == 0 && radio_rx_buf_len > 2 && radio_rx_buf[2] == 0) {
         rval = ERROR_ZERO_DATA;
@@ -262,7 +262,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms) {
     }
   }
   RFST = RFST_SIDLE;
-  GREEN_LED = 0;
+  //led_set_state(0,0);
   return rval;
 }
 
