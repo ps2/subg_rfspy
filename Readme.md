@@ -4,6 +4,13 @@
 
     sudo apt-get install sdcc
 
+It's also possible to build it under Windows. The best way to do this is to:
+
+1. install SDCC
+2. install Cygwin
+3. use Cygwin to install make
+4. Use cygwin bash to build the project
+
 # Building
 
 You'll need to select a build type, like `uart0_alt1`.  The examples below use this value, but you'll want to use the correct one for your hardware and use case.  See below for different hardware types and use cases.
