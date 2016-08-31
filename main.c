@@ -39,20 +39,20 @@ int main(void)
 
   // init LEDS
   HARDWARE_LED_INIT;       // see hardware.h
-  GREEN_LED = 0;
-  BLUE_LED = 0;
+  led_set_state(0, 0); //GREEN_LED = 0;
+  led_set_state(1, 0); //BLUE_LED = 0;
 
   // Global interrupt enable
   init_timer();
   EA = 1;
 
   //LED test
-  GREEN_LED = 1;
+  led_set_state(0, 1); //GREEN_LED = 1;
   delay(1000);
-  GREEN_LED = 0;
-  BLUE_LED = 1;
+  led_set_state(0, 0); //GREEN_LED = 0;
+  led_set_state(1, 1); //BLUE_LED = 1;
   delay(1000);
-  BLUE_LED = 0;
+  led_set_state(1, 0); //BLUE_LED = 0;
 
   configure_radio();
   configure_serial();

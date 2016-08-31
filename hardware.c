@@ -31,21 +31,15 @@ void led_set_state(uint8_t led, uint8_t command)
 {
 	if(led == 0){
 		if(green_mode == 2){
-			if(command != 2){
+			if(command < 2){
 				GREEN_LED = command;
-			}
-			else if(command == 2){
-				GREEN_LED ^= 1;
 			}
 		}
 	}
 	else if(led == 1){
 		if(blue_mode == 2){
-			if(command != 2){
+			if(command < 2){
 				BLUE_LED = command;
-			}
-			else if(command == 2){
-				BLUE_LED ^= 1;
 			}
 		}
 	} 
