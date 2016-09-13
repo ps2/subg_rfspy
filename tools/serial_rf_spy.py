@@ -17,8 +17,11 @@ class SerialRfSpy:
   def __init__(self, serial_port, rtscts=None):
     if not rtscts:
       rtscts = int(os.getenv('RFSPY_RTSCTS', 1))
-
-    self.ser = serial.Serial(serial_port, 19200, rtscts=rtscts, timeout=1)
+    if serial_port.find('spi') >= 0:
+        import spi_serial
+        self.ser = spi_serial.SpiSerial()
+    else:
+        self.ser = serial.Serial(serial_port, 19200, rtscts=rtscts, timeout=1)
     self.buf = bytearray()
 
   def do_command(self, command, param=""): 
