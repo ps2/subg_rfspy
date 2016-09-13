@@ -29,9 +29,8 @@ class SerialRfSpy:
     return self.get_response()
 
   def send_command(self, command, param=""): 
-    self.ser.write(chr(command))
-    if len(param) > 0:
-      self.ser.write(param)
+    cmd_str = chr(command) + param
+    self.ser.write(cmd_str)
 
   def get_response(self, timeout=0): 
     start = time.time()
