@@ -57,9 +57,6 @@ void configure_serial()
   // Configure USART0 for Alternative 1 => Port P0 (PERCFG.U0CFG = 0)
   PERCFG = (PERCFG & ~PERCFG_U0CFG) | PERCFG_U1CFG;
 
-  // Give priority to USART 1 over USART 0 for port 0 pins
-  P2DIR = 0x01;
-
   // Set pins 2, 3 and 5 as peripheral I/O and pin 4 as GPIO output
   P1SEL = P1SEL | BIT4 | BIT5 | BIT6 | BIT7;
   P1DIR = P1DIR & ~(BIT4 | BIT5 | BIT6 | BIT7);

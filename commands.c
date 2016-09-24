@@ -17,7 +17,8 @@ CommandHandler handlers[] = {
   /* 4 */ cmd_send_packet,
   /* 5 */ cmd_send_and_listen,
   /* 6 */ cmd_update_register,
-  /* 7 */ cmd_reset
+  /* 7 */ cmd_reset,
+  /* 8 */ cmd_led
 };
 
 void cmd_get_packet() {
@@ -221,4 +222,12 @@ void cmd_update_register() {
 void cmd_reset() {
   EA = 0;
   WDCTL = BIT3 | BIT0;
+}
+
+void cmd_led() {
+  uint8_t led;
+  uint8_t mode;
+  led = serial_rx_byte();
+  mode = serial_rx_byte(); 
+  led_set_mode(led, mode);//0, 1, 2 = Off, On, Auto
 }
