@@ -174,6 +174,11 @@ Use this command to manually control the LEDs on the device.
 Follow this command with the LED you want to configure (0 for green, 1 for blue) and the mode
 (0 for off, 1 for on, 2 for auto).
 
+### Read Register: 9
+
+Use this command to read the current value of one of the major registers. See Major Registers section
+for a list of available registers and their functions.
+
 ## Frequency Channel Selection
 
 Each channel number corresponds to a different specific frequency. Channels start with 916.5 MHz at 

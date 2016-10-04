@@ -217,7 +217,6 @@ void cmd_read_register() {
   serial_tx_byte(0);
 }
 
-
 void cmd_update_register() {
   uint8_t addr;
   uint8_t value;
