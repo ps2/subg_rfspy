@@ -249,6 +249,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
       if (read_idx > 1 && read_idx == radio_rx_buf_len) {
         // Check for end of packet
         if (use_pktlen && read_idx == PKTLEN) {
+          led_set_state(0,0);
           break;
         }
         if (!use_pktlen && d_byte == 0) {
@@ -276,7 +277,6 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
     }
   }
   RFST = RFST_SIDLE;
-  led_set_state(0,0);
   led_set_state(1,0);
   return rval;
 }

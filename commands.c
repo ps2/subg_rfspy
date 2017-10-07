@@ -52,8 +52,8 @@ void cmd_get_packet() {
   result = get_packet_and_write_to_serial(channel, timeout_ms, use_pktlen);
   if (result != 0) {
     serial_tx_byte(result);
-    serial_flush();
   }
+  serial_flush();
 }
 
 void cmd_get_state() {
@@ -119,8 +119,8 @@ void cmd_send_and_listen() {
   if (result != 0) {
     // Error, and no retries left
     serial_tx_byte(result);
-    serial_flush();
   }
+  serial_flush();
 }
 
 void cmd_read_register() {
