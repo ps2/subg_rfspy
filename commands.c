@@ -7,41 +7,25 @@
 
 uint8_t interrupting_cmd = 0;
 
+// If use_pktlen is 0, then a sentinal value of 0 determines end of packet.
+// If use_pktlen is non-zero, then rx will stop at PKTLEN
+uint8_t use_pktlen = 0;
+
 typedef void (*CommandHandler)();
 
 CommandHandler handlers[] = {
-  /* 0 */ 0,
-  /* 1 */ cmd_get_state,
-  /* 2 */ cmd_get_version,
-  /* 3 */ cmd_get_packet,
-  /* 4 */ cmd_send_packet,
-  /* 5 */ cmd_send_and_listen,
-  /* 6 */ cmd_update_register,
-  /* 7 */ cmd_reset,
-  /* 8 */ cmd_led,
-  /* 9 */ cmd_read_register
+  /* 0  */ 0,
+  /* 1  */ cmd_get_state,
+  /* 2  */ cmd_get_version,
+  /* 3  */ cmd_get_packet,
+  /* 4  */ cmd_old_send_packet,
+  /* 5  */ cmd_send_and_listen,
+  /* 6  */ cmd_update_register,
+  /* 7  */ cmd_reset,
+  /* 8  */ cmd_led,
+  /* 9  */ cmd_read_register,
+  /* 10 */ cmd_send_packet
 };
-
-void cmd_get_packet() {
-  uint8_t channel;
-  uint32_t timeout_ms;
-  uint8_t result;
-  channel = serial_rx_byte();
-  timeout_ms = serial_rx_long();
-  result = get_packet_and_write_to_serial(channel, timeout_ms);
-  if (result != 0) {
-    serial_tx_byte(result);
-    serial_tx_byte(0);
-  }
-}
-
-void cmd_get_state() {
-  serial_tx_str("OK");
-}
-
-void cmd_get_version() {
-  serial_tx_str("subg_rfspy 1.0");
-}
 
 void do_cmd(uint8_t cmd) {
   if (cmd > 0 && cmd < sizeof(handlers)/sizeof(handlers[0])) {
@@ -59,15 +43,51 @@ void get_command() {
   }
 }
 
-void cmd_send_packet() {
+void cmd_get_packet() {
+  uint8_t channel;
+  uint32_t timeout_ms;
+  uint8_t result;
+  channel = serial_rx_byte();
+  timeout_ms = serial_rx_long();
+  result = get_packet_and_write_to_serial(channel, timeout_ms, use_pktlen);
+  if (result != 0) {
+    serial_tx_byte(result);
+    serial_flush();
+  }
+}
+
+void cmd_get_state() {
+  serial_tx_str("OK");
+}
+
+void cmd_get_version() {
+  serial_tx_str("subg_rfspy 2.0");
+}
+
+// Deprecated. Relied on 0 byte to end packet
+void cmd_old_send_packet() {
   uint8_t channel;
   uint8_t repeat_count;
   uint8_t delay_ms;
   channel = serial_rx_byte();
   repeat_count = serial_rx_byte();
   delay_ms = serial_rx_byte();
-  send_packet_from_serial(channel, repeat_count, delay_ms);
+  send_packet_from_serial(channel, repeat_count, delay_ms, 0);
+  serial_flush();
+}
+
+void cmd_send_packet() {
+  uint8_t channel;
+  uint8_t repeat_count;
+  uint8_t delay_ms;
+  uint8_t len;
+  channel = serial_rx_byte();
+  repeat_count = serial_rx_byte();
+  delay_ms = serial_rx_byte();
+  len = serial_rx_byte();
+  send_packet_from_serial(channel, repeat_count, delay_ms, len);
   serial_tx_byte(0);
+  serial_flush();
 }
 
 /* Combined send and receive */
@@ -87,19 +107,19 @@ void cmd_send_and_listen() {
   timeout_ms = serial_rx_long();
   retry_count = serial_rx_byte();
 
-  send_packet_from_serial(send_channel, repeat_count, delay_ms);
-  result = get_packet_and_write_to_serial(listen_channel, timeout_ms);
+  send_packet_from_serial(send_channel, repeat_count, delay_ms, 0);
+  result = get_packet_and_write_to_serial(listen_channel, timeout_ms, use_pktlen);
 
   while (result == ERROR_RX_TIMEOUT && retry_count > 0) {
     resend_from_tx_buf(send_channel);
-    result = get_packet_and_write_to_serial(listen_channel, timeout_ms);
+    result = get_packet_and_write_to_serial(listen_channel, timeout_ms, use_pktlen);
     retry_count--;
   }
 
   if (result != 0) {
     // Error, and no retries left
     serial_tx_byte(result);
-    serial_tx_byte(0);
+    serial_flush();
   }
 }
 
@@ -204,17 +224,23 @@ void cmd_read_register() {
     case 0x1F:
       value = FSCAL0;
       break;
-    case 0x20:
+    case 0x24:
+      value = TEST1;
+      break;
+    case 0x25:
+      value = TEST0;
+      break;
+    case 0x2D:
       value = PA_TABLE1;
       break;
-    case 0x21:
+    case 0x2E:
       value = PA_TABLE0;
       break;
     default:
       value = 0x5A;
   }
   serial_tx_byte(value);
-  serial_tx_byte(0);
+  serial_flush();
 }
 
 void cmd_update_register() {
@@ -233,6 +259,7 @@ void cmd_update_register() {
       break;
     case 0x02:
       PKTLEN = value;
+      use_pktlen = 1;
       break;
     case 0x03:
       PKTCTRL1 = value;
@@ -321,17 +348,23 @@ void cmd_update_register() {
     case 0x1F:
       FSCAL0 = value;
       break;
-    case 0x20:
+    case 0x24:
+      TEST1 = value;
+      break;
+    case 0x25:
+      TEST0 = value;
+      break;
+    case 0x2D:
       PA_TABLE1 = value;
       break;
-    case 0x21:
+    case 0x2E:
       PA_TABLE0 = value;
       break;
     default:
       rval = 2;
   }
   serial_tx_byte(rval);
-  serial_tx_byte(0);
+  serial_flush();
 }
 
 void cmd_reset() {
@@ -343,6 +376,6 @@ void cmd_led() {
   uint8_t led;
   uint8_t mode;
   led = serial_rx_byte();
-  mode = serial_rx_byte(); 
+  mode = serial_rx_byte();
   led_set_mode(led, mode);//0, 1, 2 = Off, On, Auto
 }
