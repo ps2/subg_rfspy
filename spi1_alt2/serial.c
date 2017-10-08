@@ -157,6 +157,10 @@ void tx1_isr(void) __interrupt UTX1_VECTOR {
   }
 }
 
+uint8_t serial_rx_avail() {
+  return input_size;
+}
+
 uint8_t serial_rx_byte() {
   uint8_t s_data;
   while(!SERIAL_DATA_AVAILABLE);

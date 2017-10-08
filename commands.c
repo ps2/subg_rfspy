@@ -18,13 +18,12 @@ CommandHandler handlers[] = {
   /* 1  */ cmd_get_state,
   /* 2  */ cmd_get_version,
   /* 3  */ cmd_get_packet,
-  /* 4  */ cmd_old_send_packet,
+  /* 4  */ cmd_send_packet,
   /* 5  */ cmd_send_and_listen,
   /* 6  */ cmd_update_register,
   /* 7  */ cmd_reset,
   /* 8  */ cmd_led,
-  /* 9  */ cmd_read_register,
-  /* 10 */ cmd_send_packet
+  /* 9  */ cmd_read_register
 };
 
 void do_cmd(uint8_t cmd) {
@@ -64,18 +63,6 @@ void cmd_get_version() {
   serial_tx_str("subg_rfspy 2.0");
 }
 
-// Deprecated. Relied on 0 byte to end packet
-void cmd_old_send_packet() {
-  uint8_t channel;
-  uint8_t repeat_count;
-  uint8_t delay_ms;
-  channel = serial_rx_byte();
-  repeat_count = serial_rx_byte();
-  delay_ms = serial_rx_byte();
-  send_packet_from_serial(channel, repeat_count, delay_ms, 0);
-  serial_flush();
-}
-
 void cmd_send_packet() {
   uint8_t channel;
   uint8_t repeat_count;
@@ -84,7 +71,7 @@ void cmd_send_packet() {
   channel = serial_rx_byte();
   repeat_count = serial_rx_byte();
   delay_ms = serial_rx_byte();
-  len = serial_rx_byte();
+  len = serial_rx_avail();
   send_packet_from_serial(channel, repeat_count, delay_ms, len);
   serial_tx_byte(0);
   serial_flush();
@@ -99,6 +86,7 @@ void cmd_send_and_listen() {
   uint32_t timeout_ms;
   uint8_t retry_count;
   uint8_t result;
+  uint8_t len;
 
   send_channel = serial_rx_byte();
   repeat_count = serial_rx_byte();
@@ -106,8 +94,9 @@ void cmd_send_and_listen() {
   listen_channel = serial_rx_byte();
   timeout_ms = serial_rx_long();
   retry_count = serial_rx_byte();
+  len = serial_rx_avail();
 
-  send_packet_from_serial(send_channel, repeat_count, delay_ms, 0);
+  send_packet_from_serial(send_channel, repeat_count, delay_ms, len);
   result = get_packet_and_write_to_serial(listen_channel, timeout_ms, use_pktlen);
 
   while (result == ERROR_RX_TIMEOUT && retry_count > 0) {
