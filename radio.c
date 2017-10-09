@@ -232,12 +232,12 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
 
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
-  led_set_state(1,1);
+  //led_set_state(1,1);
 
   while(1) {
     // Waiting for isr to put radio bytes into radio_rx_buf
     if (radio_rx_buf_len > read_idx) {
-      led_set_state(0,1);
+      //led_set_state(0,1);
 
       if (read_idx == 0 && radio_rx_buf_len > 2 && radio_rx_buf[2] == 0) {
         rval = ERROR_ZERO_DATA;
@@ -249,7 +249,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
       if (read_idx > 1 && read_idx == radio_rx_buf_len) {
         // Check for end of packet
         if (use_pktlen && read_idx == PKTLEN) {
-          led_set_state(0,0);
+          //led_set_state(0,0);
           break;
         }
         if (!use_pktlen && d_byte == 0) {
@@ -260,7 +260,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
 
     if (timeout_ms > 0 && timerCounter > timeout_ms) {
       rval = ERROR_RX_TIMEOUT;
-      led_set_state(1,0);
+      //led_set_state(1,0);
       break;
     }
 
@@ -277,6 +277,6 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
     }
   }
   RFST = RFST_SIDLE;
-  led_set_state(1,0);
+  //led_set_state(1,0);
   return rval;
 }
