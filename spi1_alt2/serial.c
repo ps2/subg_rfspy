@@ -203,6 +203,7 @@ void serial_tx_byte(uint8_t tx_byte) {
 
 void serial_flush() {
   ready_to_send = 1;
+  while(output_size);
 }
 
 void serial_tx_str(const char *str) {
