@@ -77,6 +77,8 @@ void cmd_set_mode_registers() {
       mode_registers_add(registers, addr, value);
     }
   }
+  serial_tx_byte(0);
+  serial_flush();
 }
 
 void cmd_get_packet() {
