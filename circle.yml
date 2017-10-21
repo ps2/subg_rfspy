@@ -1,7 +1,7 @@
 machine:
   pre:
     - sudo apt-get install -y sdcc
-    - go get github.com/ps2/ghr
+    - go get -u github.com/tcnksm/ghr
 test:
   override:
     - ./build-all.sh
