@@ -1,10 +1,11 @@
-machine:
-  pre:
-    - sudo apt-get install -y sdcc
-    - go get -u github.com/tcnksm/ghr
 test:
   override:
     - ./build-all.sh
+
+dependencies:
+  pre:
+    - sudo apt-get install -y sdcc
+    - go get github.com/tcnksm/ghr
 
 deployment:
   release:
