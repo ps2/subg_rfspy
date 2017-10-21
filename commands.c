@@ -40,7 +40,7 @@ void cmd_get_state() {
 }
 
 void cmd_get_version() {
-  serial_tx_str("subg_rfspy 0.9");
+  serial_tx_str("subg_rfspy 1.0");
 }
 
 void do_cmd(uint8_t cmd) {

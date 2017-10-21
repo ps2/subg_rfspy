@@ -53,14 +53,13 @@ class SerialRfSpy:
       data = self.get_response(1)
       if data == "OK":
         print "RileyLink " + data
-        break 
-      print "retry", len(data), str(data).encode('hex')
- 
+        break
+      print "retry", len(data), str(data).encode('hex'), "(Do you need to run 'export RFSPY_RTSCTS=0' first?)"
+
     while 1:
       self.send_command(self.CMD_GET_VERSION) 
       data = self.get_response(1)
       if len(data) >= 3:
         print "Version: " + data
-        break 
-      print "retry", len(data), str(data).encode('hex')
-
+        break
+      print "retry", len(data), str(data).encode('hex'), "(Do you need to run 'export RFSPY_RTSCTS=0' first?)"

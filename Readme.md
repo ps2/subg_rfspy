@@ -356,3 +356,4 @@ Power amplifier output power setting 1.
 ### PA_TABLE0 (0xDF2E)
 
 Power amplifier output power setting 0.
+
