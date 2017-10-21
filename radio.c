@@ -138,6 +138,10 @@ void rf_isr(void) __interrupt RF_VECTOR {
 
 void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t delay_ms, uint8_t len) {
   uint8_t s_byte;
+  uint8_t pktlen_save;
+
+  pktlen_save = PKTLEN;
+  PKTLEN = len;
 
   radio_tx_buf_len = 0;
   radio_tx_buf_idx = 0;
@@ -193,10 +197,15 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
     while(MARCSTATE!=MARC_STATE_IDLE);
     repeat_count--;
   }
+  PKTLEN = pktlen_save;
   //led_set_state(1,0);
 }
 
 void resend_from_tx_buf(uint8_t channel) {
+  uint8_t pktlen_save;
+
+  pktlen_save = PKTLEN;
+  PKTLEN = radio_tx_buf_len;
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
@@ -213,6 +222,8 @@ void resend_from_tx_buf(uint8_t channel) {
 
   // wait for sending to finish
   while(MARCSTATE!=MARC_STATE_IDLE);
+
+  PKTLEN = pktlen_save;
 }
 
 uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uint8_t use_pktlen) {
