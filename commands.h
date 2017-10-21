@@ -5,6 +5,12 @@
 #define ERROR_CMD_INTERRUPTED 0xbb
 #define ERROR_ZERO_DATA 0xcc
 
+enum RegisterMode {
+  RegisterModeTx = 0x01,
+  RegisterModeRx = 0x02
+  /* maybe idle in future? */
+};
+
 void get_command();
 
 // This is set when a command is received while processing a long running

@@ -8,8 +8,11 @@
 #include "commands.h"
 #include "delay.h"
 
-uint8_t green_mode = 2;
-uint8_t blue_mode = 2;
+static uint8_t green_mode = 2;
+static uint8_t blue_mode = 2;
+
+mode_registers tx_registers;
+mode_registers rx_registers;
 
 void led_set_mode(uint8_t led, uint8_t new_mode)
 {
@@ -165,8 +168,6 @@ uint8_t get_register(uint8_t addr) {
 
 uint8_t set_register(uint8_t addr, uint8_t value) {
   uint8_t rval;
-  addr = serial_rx_byte();
-  value = serial_rx_byte();
   rval = 1;
   switch(addr) {
     case 0x00:
@@ -281,4 +282,23 @@ uint8_t set_register(uint8_t addr, uint8_t value) {
       rval = 2;
   }
 	return rval;
+}
+
+void mode_registers_clear(mode_registers *mode) {
+	mode->count = 0;
+}
+
+void mode_registers_add(mode_registers *mode, uint8_t addr, uint8_t value) {
+	if (mode->count < MAX_MODE_REGISTERS - 1) {
+		mode->registers[mode->count].addr = addr;
+		mode->registers[mode->count].value = value;
+		mode->count++;
+	}
+}
+
+void mode_registers_enact(mode_registers const *mode) {
+  int i;
+	for (i=0; i<mode->count; i++) {
+		set_register(mode->registers[i].addr, mode->registers[i].value);
+	}
 }

@@ -140,6 +140,8 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
   uint8_t s_byte;
   uint8_t pktlen_save;
 
+  mode_registers_enact(&tx_registers);
+
   pktlen_save = PKTLEN;
   PKTLEN = len;
 
@@ -233,6 +235,8 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
   uint8_t rval = 0;
 
   reset_timer();
+
+  mode_registers_enact(&rx_registers);
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);

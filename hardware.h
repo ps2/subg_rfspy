@@ -60,10 +60,29 @@
 #define SYSTEM_CLOCK_MHZ 26
 #endif
 
+#define MAX_MODE_REGISTERS 8
+
+typedef struct register_setting {
+	uint8_t	addr;
+	uint8_t	value;
+} register_setting;
+
+typedef struct mode_registers {
+  uint8_t count;
+  register_setting registers[MAX_MODE_REGISTERS];
+} mode_registers;
+
 void led_set_mode(uint8_t led, uint8_t new_mode);
 void led_set_state(uint8_t led, uint8_t command);
+
 uint8_t get_register(uint8_t addr);
 uint8_t set_register(uint8_t addr, uint8_t value);
 
+void mode_registers_clear(mode_registers *mode);
+void mode_registers_add(mode_registers *mode, uint8_t addr, uint8_t value);
+void mode_registers_enact(mode_registers const *mode);
+
+extern mode_registers tx_registers;
+extern mode_registers rx_registers;
 
 #endif

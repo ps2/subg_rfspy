@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <stddef.h>
 #include "hardware.h"
 #include "serial.h"
 #include "radio.h"
@@ -23,7 +24,8 @@ CommandHandler handlers[] = {
   /* 6  */ cmd_update_register,
   /* 7  */ cmd_reset,
   /* 8  */ cmd_led,
-  /* 9  */ cmd_read_register
+  /* 9  */ cmd_read_register,
+  /* 10 */ cmd_set_mode_registers,
 };
 
 void do_cmd(uint8_t cmd) {
@@ -39,6 +41,41 @@ void get_command() {
   if (interrupting_cmd) {
     do_cmd(interrupting_cmd);
     interrupting_cmd = 0;
+  }
+}
+
+void cmd_set_mode_registers() {
+  uint8_t register_mode;
+  uint8_t count;
+  uint8_t addr;
+  uint8_t value;
+  int i;
+  mode_registers *registers;
+
+  register_mode = serial_rx_byte();
+  count = serial_rx_avail() / 2;
+
+  switch(register_mode) {
+    case RegisterModeTx:
+      registers = &tx_registers;
+      break;
+    case RegisterModeRx:
+      registers = &rx_registers;
+      break;
+    default:
+      registers = 0x0;
+      break;
+  }
+
+  if (registers != NULL) {
+    mode_registers_clear(registers);
+  }
+  for (i=0; i<count; i++) {
+    addr = serial_rx_byte();
+    value = serial_rx_byte();
+    if (registers != NULL) {
+      mode_registers_add(registers, addr, value);
+    }
   }
 }
 
