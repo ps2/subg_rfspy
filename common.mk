@@ -17,7 +17,7 @@ CFLAGS=-I. -I${SERIAL_TYPE} --verbose ${RADIO_LOCALE_DEF} -D${BOARD_TYPE} ${BOAR
 
 default: output output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 
-common_modules = radio.rel main.rel timer.rel \
+common_modules = radio.rel main.rel timer.rel encoding.rel \
 	           commands.rel delay.rel hardware.rel
 
 clean:

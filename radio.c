@@ -5,6 +5,7 @@
 #include "commands.h"
 #include "delay.h"
 #include "timer.h"
+#include "encoding.h"
 
 #define MAX_PACKET_LEN 192
 volatile uint8_t __xdata radio_tx_buf[MAX_PACKET_LEN];
@@ -14,6 +15,8 @@ volatile uint8_t __xdata radio_rx_buf[MAX_PACKET_LEN];
 volatile uint8_t radio_rx_buf_len = 0;
 volatile uint8_t packet_count = 1;
 volatile uint8_t underflow_count = 0;
+
+EncodingType encoding_type;
 
 void configure_radio()
 {
@@ -73,10 +76,17 @@ void configure_radio()
   RFTXRXIE = 1;
 }
 
+// Set software based encoding
+void set_encoding_type(EncodingType new_type) {
+  encoding_type = new_type;
+}
+
+
 void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
   uint8_t d_byte;
   if (MARCSTATE==MARC_STATE_RX) {
-    d_byte = RFD;
+    //d_byte = RFD;
+    d_byte = LQI;
     if (radio_rx_buf_len == 0) {
       radio_rx_buf[0] = RSSI;
       if (radio_rx_buf[0] == 0) {
@@ -95,10 +105,10 @@ void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
     } else {
       // Overflow
     }
-    if (d_byte == 0) {
-      RFST = RFST_SIDLE;
-      while(MARCSTATE!=MARC_STATE_IDLE);
-    }
+    // if (d_byte == 0) {
+    //   RFST = RFST_SIDLE;
+    //   while(MARCSTATE!=MARC_STATE_IDLE);
+    // }
   }
   else if (MARCSTATE==MARC_STATE_TX) {
     if (radio_tx_buf_len > radio_tx_buf_idx) {

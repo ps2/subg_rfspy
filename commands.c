@@ -5,6 +5,7 @@
 #include "serial.h"
 #include "radio.h"
 #include "commands.h"
+#include "encoding.h"
 
 uint8_t interrupting_cmd = 0;
 
@@ -26,6 +27,7 @@ CommandHandler handlers[] = {
   /* 8  */ cmd_led,
   /* 9  */ cmd_read_register,
   /* 10 */ cmd_set_mode_registers,
+  /* 11 */ cmd_set_sw_encoding,
 };
 
 void do_cmd(uint8_t cmd) {
@@ -43,6 +45,14 @@ void get_command() {
     interrupting_cmd = 0;
   }
 }
+
+void cmd_set_sw_encoding() {
+  EncodingType encoding_type;
+
+  encoding_type = serial_rx_byte();
+  set_encoding_type(encoding_type);
+}
+
 
 void cmd_set_mode_registers() {
   uint8_t register_mode;
