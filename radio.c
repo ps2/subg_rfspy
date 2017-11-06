@@ -85,8 +85,7 @@ void set_encoding_type(EncodingType new_type) {
 void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
   uint8_t d_byte;
   if (MARCSTATE==MARC_STATE_RX) {
-    //d_byte = RFD;
-    d_byte = LQI;
+    d_byte = RFD;
     if (radio_rx_buf_len == 0) {
       radio_rx_buf[0] = RSSI;
       if (radio_rx_buf[0] == 0) {
