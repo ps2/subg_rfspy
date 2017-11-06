@@ -2,6 +2,7 @@
 #define ENCODING_H
 
 #include <stdint.h>
+#include "manchester_state.h"
 
 typedef enum {
   EncodingTypeNone = 0x0,
@@ -11,10 +12,7 @@ typedef enum {
 
 typedef struct {
   union {
-    struct {
-      uint8_t output[2];
-      uint8_t offset;
-    } manchester;
+    struct ManchesterEncoderState manchester;
     struct {
       uint8_t data;
       uint8_t count;
@@ -24,10 +22,7 @@ typedef struct {
 
 typedef struct {
   union {
-    struct {
-      uint8_t output;
-      uint8_t bits_avail;
-    } manchester;
+    struct ManchesterDecoderState manchester;
     struct {
       uint8_t data;
       uint8_t count;
