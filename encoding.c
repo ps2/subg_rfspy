@@ -7,7 +7,7 @@ static void manchester_init_encoder(EncoderState *state) {
   state->manchester.offset = 2;
 }
 
-static void manchester_add_raw_byte(EncoderState *state, uint8_t raw) {
+static void manchester_add_raw_byte(EncoderState *state, uint8_t raw) __reentrant {
   uint16_t acc = 0;
   int i;
   for (i=0; i<8; i++) {
@@ -19,7 +19,7 @@ static void manchester_add_raw_byte(EncoderState *state, uint8_t raw) {
   state->manchester.offset = 0;
 }
 
-static uint8_t manchester_next_encoded_byte(EncoderState *state, uint8_t *encoded) {
+static uint8_t manchester_next_encoded_byte(EncoderState *state, uint8_t *encoded) __reentrant {
   if (state->manchester.offset > 1) {
     return 0;
   }
@@ -35,7 +35,7 @@ static void manchester_init_decoder(DecoderState *state) {
   state->manchester.bits_avail = 0;
 }
 
-static uint8_t manchester_add_encoded_byte(DecoderState *state, uint8_t raw) {
+static uint8_t manchester_add_encoded_byte(DecoderState *state, uint8_t raw) __reentrant {
   uint8_t acc = 0;
   int i;
   for (i=0; i<8; i++) {
@@ -53,7 +53,7 @@ static uint8_t manchester_add_encoded_byte(DecoderState *state, uint8_t raw) {
   return 0;
 }
 
-static uint8_t manchester_next_decoded_byte(DecoderState *state, uint8_t *decoded) {
+static uint8_t manchester_next_decoded_byte(DecoderState *state, uint8_t *decoded) __reentrant {
   if (state->manchester.bits_avail < 8) {
     return 0;
   }
@@ -67,12 +67,12 @@ static void passthrough_init_encoder(EncoderState *state) {
   state->passthrough.count = 0;
 }
 
-static void passthrough_add_raw_byte(EncoderState *state, uint8_t raw) {
+static void passthrough_add_raw_byte(EncoderState *state, uint8_t raw) __reentrant {
   state->passthrough.count = 1;
   state->passthrough.data = raw;
 }
 
-static uint8_t passthrough_next_encoded_byte(EncoderState *state, uint8_t *encoded) {
+static uint8_t passthrough_next_encoded_byte(EncoderState *state, uint8_t *encoded) __reentrant {
   if (state->passthrough.count < 1) {
     return 0;
   }
@@ -86,13 +86,13 @@ static void passthrough_init_decoder(DecoderState *state) {
   state->passthrough.count = 0;
 }
 
-static uint8_t passthrough_add_encoded_byte(DecoderState *state, uint8_t raw) {
+static uint8_t passthrough_add_encoded_byte(DecoderState *state, uint8_t raw) __reentrant {
   state->passthrough.data = raw;
   state->passthrough.count = 1;
   return 0;
 }
 
-static uint8_t passthrough_next_decoded_byte(DecoderState *state, uint8_t *decoded) {
+static uint8_t passthrough_next_decoded_byte(DecoderState *state, uint8_t *decoded) __reentrant {
   if (state->passthrough.count < 1) {
     return 0;
   }
@@ -103,8 +103,8 @@ static uint8_t passthrough_next_decoded_byte(DecoderState *state, uint8_t *decod
 
 
 // Init Encoder
-void init_encoder(EncodingType encodingType, Encoder *encoder, EncoderState *state) {
-  switch (encodingType) {
+void init_encoder(EncodingType encoding_type, Encoder *encoder, EncoderState *state) {
+  switch (encoding_type) {
     case EncodingTypeNone:
       encoder->add_raw_byte = passthrough_add_raw_byte;
       encoder->next_encoded_byte = passthrough_next_encoded_byte;
@@ -119,8 +119,8 @@ void init_encoder(EncodingType encodingType, Encoder *encoder, EncoderState *sta
 }
 
 // Init Decoder
-void init_decoder(EncodingType encodingType, Decoder *decoder, DecoderState *state) {
-  switch (encodingType) {
+void init_decoder(EncodingType encoding_type, Decoder *decoder, DecoderState *state) {
+  switch (encoding_type) {
     case EncodingTypeNone:
       decoder->add_encoded_byte = passthrough_add_encoded_byte;
       decoder->next_decoded_byte = passthrough_next_decoded_byte;

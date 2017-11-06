@@ -11,8 +11,8 @@
 static uint8_t green_mode = 2;
 static uint8_t blue_mode = 2;
 
-mode_registers tx_registers;
-mode_registers rx_registers;
+mode_registers __xdata tx_registers;
+mode_registers __xdata rx_registers;
 
 void led_set_mode(uint8_t led, uint8_t new_mode)
 {

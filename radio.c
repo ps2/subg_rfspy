@@ -7,16 +7,16 @@
 #include "timer.h"
 #include "encoding.h"
 
-#define MAX_PACKET_LEN 192
+#define MAX_PACKET_LEN 512
 volatile uint8_t __xdata radio_tx_buf[MAX_PACKET_LEN];
-volatile uint8_t radio_tx_buf_len = 0;
-volatile uint8_t radio_tx_buf_idx = 0;
+volatile uint16_t radio_tx_buf_len = 0;
+volatile uint16_t radio_tx_buf_idx = 0;
 volatile uint8_t __xdata radio_rx_buf[MAX_PACKET_LEN];
-volatile uint8_t radio_rx_buf_len = 0;
+volatile uint16_t radio_rx_buf_len = 0;
 volatile uint8_t packet_count = 1;
 volatile uint8_t underflow_count = 0;
 
-EncodingType encoding_type;
+EncodingType encoding_type = EncodingTypeNone;
 
 void configure_radio()
 {
@@ -150,6 +150,11 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
   uint8_t s_byte;
   uint8_t pktlen_save;
 
+  Encoder encoder;
+  EncoderState encoder_state;
+
+  init_encoder(encoding_type, &encoder, &encoder_state);
+
   mode_registers_enact(&tx_registers);
 
   pktlen_save = PKTLEN;
@@ -165,25 +170,19 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
   CHANNR = channel;
   //led_set_state(1,1);
 
-  while (1) {
+  while (len > 0) {
     s_byte = serial_rx_byte();
-    if (radio_tx_buf_len == (MAX_PACKET_LEN - 1)) {
-      s_byte = 0;
-    }
-    radio_tx_buf[radio_tx_buf_len++] = s_byte;
-    if (len == 0) {
-      // If len == 0, then use 0 terminator to detect end of packet
-      if (s_byte == 0) {
-        break;
-      }
-    } else {
-      if (radio_tx_buf_len >= len) {
+    len--;
+    encoder.add_raw_byte(&encoder_state, s_byte);
+    while (encoder.next_encoded_byte(&encoder_state, &s_byte)) {
+      radio_tx_buf[radio_tx_buf_len++] = s_byte;
+      if (radio_tx_buf_len >= MAX_PACKET_LEN) {
         break;
       }
     }
 
     if (radio_tx_buf_len == 2) {
-      // Turn on radio
+      // Turn on radio after 2 bytes
       RFST = RFST_STX;
     }
   }
@@ -243,10 +242,16 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
   uint8_t read_idx = 0;
   uint8_t d_byte = 0;
   uint8_t rval = 0;
+  uint8_t encoding_error = 0;
+
+  Decoder __xdata decoder;
+  DecoderState __xdata decoder_state;
 
   reset_timer();
 
   mode_registers_enact(&rx_registers);
+
+  init_decoder(encoding_type, &decoder, &decoder_state);
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
@@ -264,13 +269,19 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
     if (radio_rx_buf_len > read_idx) {
       //led_set_state(0,1);
 
-      if (read_idx == 0 && radio_rx_buf_len > 2 && radio_rx_buf[2] == 0) {
-        rval = ERROR_ZERO_DATA;
+      d_byte = radio_rx_buf[read_idx];
+      read_idx++;
+
+      encoding_error = decoder.add_encoded_byte(&decoder_state, d_byte);
+
+      while (decoder.next_decoded_byte(&decoder_state, &d_byte)) {
+        serial_tx_byte(d_byte);
+      }
+
+      if (encoding_error) {
         break;
       }
-      d_byte = radio_rx_buf[read_idx];
-      serial_tx_byte(d_byte);
-      read_idx++;
+
       if (read_idx > 1 && read_idx == radio_rx_buf_len) {
         // Check for end of packet
         if (use_pktlen && read_idx == PKTLEN) {
