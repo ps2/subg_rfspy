@@ -33,12 +33,12 @@ void manchester_init_decoder(DecoderState *state) {
   state->manchester.bits_avail = 0;
 }
 
-uint8_t manchester_add_encoded_byte(DecoderState *state, uint8_t raw) __reentrant {
+uint8_t manchester_add_encoded_byte(DecoderState *state, uint8_t encoded) __reentrant {
   uint8_t acc = 0;
   int i;
   for (i=0; i<8; i++) {
     acc = (acc << 1);
-    switch(raw & 0b11) {
+    switch(encoded & 0b11) {
       case 0b00:
       case 0b11:
         return 1;  // Encoding error

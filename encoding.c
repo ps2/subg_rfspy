@@ -1,6 +1,7 @@
 
 #include "encoding.h"
 #include "manchester.h"
+#include "fourbsixb.h"
 
 // Passthrough encoder
 static void passthrough_init_encoder(EncoderState *state) {
@@ -26,8 +27,8 @@ static void passthrough_init_decoder(DecoderState *state) {
   state->passthrough.count = 0;
 }
 
-static uint8_t passthrough_add_encoded_byte(DecoderState *state, uint8_t raw) __reentrant {
-  state->passthrough.data = raw;
+static uint8_t passthrough_add_encoded_byte(DecoderState *state, uint8_t encoded) __reentrant {
+  state->passthrough.data = encoded;
   state->passthrough.count = 1;
   return 0;
 }
@@ -55,6 +56,11 @@ void init_encoder(EncodingType encoding_type, Encoder *encoder, EncoderState *st
       encoder->next_encoded_byte = manchester_next_encoded_byte;
       manchester_init_encoder(state);
       break;
+    case EncodingTypeFourbSixb:
+      encoder->add_raw_byte = fourbsixb_add_raw_byte;
+      encoder->next_encoded_byte = fourbsixb_next_encoded_byte;
+      fourbsixb_init_encoder(state);
+      break;
   }
 }
 
@@ -70,6 +76,11 @@ void init_decoder(EncodingType encoding_type, Decoder *decoder, DecoderState *st
       decoder->add_encoded_byte = manchester_add_encoded_byte;
       decoder->next_decoded_byte = manchester_next_decoded_byte;
       manchester_init_decoder(state);
+      break;
+    case EncodingTypeFourbSixb:
+      decoder->add_encoded_byte = fourbsixb_add_encoded_byte;
+      decoder->next_decoded_byte = fourbsixb_next_decoded_byte;
+      fourbsixb_init_decoder(state);
       break;
   }
 }
