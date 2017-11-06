@@ -272,10 +272,15 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
       d_byte = radio_rx_buf[read_idx];
       read_idx++;
 
-      encoding_error = decoder.add_encoded_byte(&decoder_state, d_byte);
-
-      while (decoder.next_decoded_byte(&decoder_state, &d_byte)) {
+      // First two bytes are rssi and packet #
+      if (read_idx < 3) {
         serial_tx_byte(d_byte);
+      } else {
+        encoding_error = decoder.add_encoded_byte(&decoder_state, d_byte);
+
+        while (decoder.next_decoded_byte(&decoder_state, &d_byte)) {
+          serial_tx_byte(d_byte);
+        }
       }
 
       if (encoding_error) {
@@ -300,9 +305,6 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
       break;
     }
 
-    #ifndef TI_DONGLE
-    #else
-    #endif
     // Also going to watch serial in case the client wants to interrupt rx
     if (SERIAL_DATA_AVAILABLE) {
       // Received a byte from uart while waiting for radio packet
