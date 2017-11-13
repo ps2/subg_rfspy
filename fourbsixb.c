@@ -38,6 +38,7 @@ uint8_t fourbsixb_add_encoded_byte(DecoderState *state, uint8_t encoded) __reent
   state->fourbsixb.input_bits_avail += 8;
   while (state->fourbsixb.input_bits_avail >= 6) {
     code = (state->fourbsixb.input_acc >> (state->fourbsixb.input_bits_avail - 6)) & 0b111111;
+    state->fourbsixb.input_bits_avail -= 6;
     for (i=0; i<16; i++) {
       if (codes[i] == code) {
         break;
