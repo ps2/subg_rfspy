@@ -4,7 +4,7 @@
 #include "serial.h"
 #include "radio.h"
 
-#define SPI_BUF_LEN 220 
+#define SPI_BUF_LEN 220
 
 volatile uint8_t __xdata spi_input_buf[SPI_BUF_LEN];
 volatile uint8_t input_size = 0;
@@ -30,13 +30,13 @@ volatile uint8_t slave_send_size = 0;
 
 
 /***************************************************************************
- * 
- * SPI encoding: 
+ *
+ * SPI encoding:
  *
  * Master sends a 0x99 byte, followed by number of bytes that will be sent.
  * Before second byte xfer, slave loads up buffer with number of bytes
- * available. 
- * 
+ * available.
+ *
  */
 
 
@@ -157,6 +157,10 @@ void tx1_isr(void) __interrupt UTX1_VECTOR {
   }
 }
 
+uint8_t serial_rx_avail() {
+  return input_size;
+}
+
 uint8_t serial_rx_byte() {
   uint8_t s_data;
   while(!SERIAL_DATA_AVAILABLE);
@@ -170,7 +174,7 @@ uint8_t serial_rx_byte() {
     serial_data_available = 0;
   }
   return s_data;
-} 
+}
 
 uint16_t serial_rx_word() {
   return (serial_rx_byte() << 8) + serial_rx_byte();
@@ -190,9 +194,6 @@ void serial_tx_byte(uint8_t tx_byte) {
     }
   }
   spi_output_buf[output_head_idx] = tx_byte;
-  if (tx_byte == 0) {
-    ready_to_send = 1;
-  }
   output_head_idx++;
   if (output_head_idx >= SPI_BUF_LEN) {
     output_head_idx = 0;
@@ -200,12 +201,15 @@ void serial_tx_byte(uint8_t tx_byte) {
   output_size++;
 }
 
+void serial_flush() {
+  ready_to_send = 1;
+  while(output_size);
+}
+
 void serial_tx_str(const char *str) {
   while(*str != 0) {
     serial_tx_byte(*str);
     str++;
   }
-  serial_tx_byte(0);
+  serial_flush();
 }
-
-

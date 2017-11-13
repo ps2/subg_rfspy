@@ -78,11 +78,11 @@ void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
   if (MARCSTATE==MARC_STATE_RX) {
     d_byte = RFD;
     if (radio_rx_buf_len == 0) {
-      radio_rx_buf[0] = RSSI; 
+      radio_rx_buf[0] = RSSI;
       if (radio_rx_buf[0] == 0) {
         radio_rx_buf[0] = 1; // Prevent RSSI of 0 from triggering end-of-packet
       }
-      radio_rx_buf[1] = packet_count; 
+      radio_rx_buf[1] = packet_count;
       packet_count++;
       radio_rx_buf_len = 2;
     }
@@ -136,9 +136,15 @@ void rf_isr(void) __interrupt RF_VECTOR {
 
 }
 
-void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t delay_ms) {
+void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t delay_ms, uint8_t len) {
   uint8_t s_byte;
-  
+  uint8_t pktlen_save;
+
+  mode_registers_enact(&tx_registers);
+
+  pktlen_save = PKTLEN;
+  PKTLEN = len;
+
   radio_tx_buf_len = 0;
   radio_tx_buf_idx = 0;
   underflow_count = 0;
@@ -155,11 +161,18 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
       s_byte = 0;
     }
     radio_tx_buf[radio_tx_buf_len++] = s_byte;
-    if (s_byte == 0) {
-      break;
+    if (len == 0) {
+      // If len == 0, then use 0 terminator to detect end of packet
+      if (s_byte == 0) {
+        break;
+      }
+    } else {
+      if (radio_tx_buf_len >= len) {
+        break;
+      }
     }
 
-    if (radio_tx_buf_len == 2) { 
+    if (radio_tx_buf_len == 2) {
       // Turn on radio
       RFST = RFST_STX;
     }
@@ -173,11 +186,11 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
     radio_tx_buf_idx = 0;
     underflow_count = 0;
 
-    // delay 
+    // delay
     if (delay_ms > 0) {
       delay(delay_ms);
     }
-    
+
     // Turn on radio (interrupts should start again)
     RFST = RFST_STX;
     while(MARCSTATE!=MARC_STATE_TX);
@@ -186,10 +199,15 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t dela
     while(MARCSTATE!=MARC_STATE_IDLE);
     repeat_count--;
   }
+  PKTLEN = pktlen_save;
   //led_set_state(1,0);
 }
 
 void resend_from_tx_buf(uint8_t channel) {
+  uint8_t pktlen_save;
+
+  pktlen_save = PKTLEN;
+  PKTLEN = radio_tx_buf_len;
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
@@ -206,15 +224,19 @@ void resend_from_tx_buf(uint8_t channel) {
 
   // wait for sending to finish
   while(MARCSTATE!=MARC_STATE_IDLE);
+
+  PKTLEN = pktlen_save;
 }
 
-uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms) {
+uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uint8_t use_pktlen) {
 
   uint8_t read_idx = 0;
   uint8_t d_byte = 0;
   uint8_t rval = 0;
 
   reset_timer();
+
+  mode_registers_enact(&rx_registers);
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
@@ -225,6 +247,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms) {
 
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
+  //led_set_state(1,1);
 
   while(1) {
     // Waiting for isr to put radio bytes into radio_rx_buf
@@ -238,17 +261,24 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms) {
       d_byte = radio_rx_buf[read_idx];
       serial_tx_byte(d_byte);
       read_idx++;
-      if (read_idx > 1 && read_idx == radio_rx_buf_len && d_byte == 0) {
-        // End of packet.
-        break;
+      if (read_idx > 1 && read_idx == radio_rx_buf_len) {
+        // Check for end of packet
+        if (use_pktlen && read_idx == PKTLEN) {
+          //led_set_state(0,0);
+          break;
+        }
+        if (!use_pktlen && d_byte == 0) {
+          break;
+        }
       }
     }
 
-    if (timeout_ms > 0 && timerCounter > timeout_ms && radio_rx_buf_len == 0) {
+    if (timeout_ms > 0 && timerCounter > timeout_ms) {
       rval = ERROR_RX_TIMEOUT;
+      //led_set_state(1,0);
       break;
     }
-  
+
     #ifndef TI_DONGLE
     #else
     #endif
@@ -262,7 +292,6 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms) {
     }
   }
   RFST = RFST_SIDLE;
-  //led_set_state(0,0);
+  //led_set_state(1,0);
   return rval;
 }
-

@@ -1,6 +1,9 @@
 #ifndef SERIAL_H
 #define SERIAL_H
 
+// Needs to be updated with some kind of framing, to support packets with 0's in them
+#error "This serial configuration no longer supported."
+
 #define SERIAL_DATA_AVAILABLE URX0IF
 
 void configure_serial();
