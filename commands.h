@@ -3,7 +3,6 @@
 
 #define ERROR_RX_TIMEOUT 0xaa
 #define ERROR_CMD_INTERRUPTED 0xbb
-#define ERROR_ZERO_DATA 0xcc
 
 enum RegisterMode {
   RegisterModeTx = 0x01,

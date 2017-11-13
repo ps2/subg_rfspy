@@ -17,8 +17,8 @@ CFLAGS=-I. -I${SERIAL_TYPE} --verbose ${RADIO_LOCALE_DEF} -D${BOARD_TYPE} ${BOAR
 
 default: output output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 
-common_modules = radio.rel main.rel timer.rel \
-	           commands.rel delay.rel hardware.rel
+common_modules = radio.rel main.rel timer.rel encoding.rel manchester.rel \
+	           fourbsixb.rel commands.rel delay.rel hardware.rel
 
 clean:
 	rm -rf output/${TARGET_BUILD}
