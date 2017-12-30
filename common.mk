@@ -12,7 +12,7 @@ TARGET_BUILD := ${SERIAL_TYPE}_${BOARD_TYPE}_${RADIO_LOCALE}_${CODE_LOC_NAME}
 
 CC=sdcc
 
-LDFLAGS=--xram-loc 0xf000 --xram-size 0x1000 --code-loc ${CODE_LOC}
+LDFLAGS=--xram-loc 0xf000 --xram-size 0x1000 --code-loc ${CODE_LOC} --code-size 0x8000
 CFLAGS=-I. -I${SERIAL_TYPE} --verbose ${RADIO_LOCALE_DEF} -D${BOARD_TYPE} ${BOARD_PARAMS} ${SERIAL_PARAMS}
 
 default: output output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
