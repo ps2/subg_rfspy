@@ -2,13 +2,15 @@
 #define ENCODING_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "manchester_state.h"
 #include "fourbsixb_state.h"
 
 typedef enum {
   EncodingTypeNone = 0x0,
   EncodingTypeManchester = 0x1,
-  EncodingTypeFourbSixb = 0x02
+  EncodingTypeFourbSixb = 0x02,
+  MaxEncodingTypeValue = EncodingTypeFourbSixb
 } EncodingType;
 
 typedef struct {
@@ -37,14 +39,16 @@ typedef struct {
   // Adds a byte to be encoded
   void (*add_raw_byte)(EncoderState *state, uint8_t raw) __reentrant;
   // encoded will be set to next available encoded byte.
+  // If flush is true, then encoder should return any partial bytes
   // Return value is 0 if no more bytes are available.
-  uint8_t (*next_encoded_byte)(EncoderState *state, uint8_t *encoded) __reentrant;
+  uint8_t (*next_encoded_byte)(EncoderState *state, uint8_t *encoded, bool flush) __reentrant;
 } Encoder;
 
 typedef struct {
   // Adds a byte for decoding. The return value will be 1 if the byte
   // contains encoding errors, otherwise it will be 0.
-  uint8_t (*add_encoded_byte)(DecoderState *state, uint8_t encoded) __reentrant;
+  uint8_t (*add_encoded_byte)(DecoderState *state, uint8_t encoded)
+   __reentrant;
   // decoded will be set to the next available decoded byte.
   // Return value is 0 if no more bytes are available.
   uint8_t (*next_decoded_byte)(DecoderState *state, uint8_t *decoded) __reentrant;

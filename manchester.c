@@ -9,7 +9,7 @@ void manchester_add_raw_byte(EncoderState *state, uint8_t raw) __reentrant {
   uint16_t acc = 0;
   int i;
   for (i=0; i<8; i++) {
-    acc = (acc << 2) + 1 + (raw >> 7);
+    acc = (acc << 2) + 2 - (raw >> 7);
     raw = raw << 1;
   }
   state->manchester.output[0] = acc >> 8;
@@ -17,7 +17,7 @@ void manchester_add_raw_byte(EncoderState *state, uint8_t raw) __reentrant {
   state->manchester.offset = 0;
 }
 
-uint8_t manchester_next_encoded_byte(EncoderState *state, uint8_t *encoded) __reentrant {
+uint8_t manchester_next_encoded_byte(EncoderState *state, uint8_t *encoded, bool flush) __reentrant {
   if (state->manchester.offset > 1) {
     return 0;
   }
@@ -36,13 +36,13 @@ void manchester_init_decoder(DecoderState *state) {
 uint8_t manchester_add_encoded_byte(DecoderState *state, uint8_t encoded) __reentrant {
   uint8_t acc = 0;
   int i;
-  for (i=0; i<8; i++) {
+  for (i=6; i>=0; i-=2) {
     acc = (acc << 1);
-    switch(encoded & 0b11) {
+    switch((encoded >> i) & 0b11) {
       case 0b00:
       case 0b11:
         return 1;  // Encoding error
-      case 0b10:
+      case 0b01:
         acc++;
     }
   }

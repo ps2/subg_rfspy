@@ -10,6 +10,7 @@ void serial_tx_byte(uint8_t);
 void serial_tx_str(const char *str);
 void serial_flush();
 uint8_t serial_rx_byte();
+uint16_t serial_rx_word();
 uint32_t serial_rx_long();
 uint8_t serial_rx_avail();
 

@@ -13,7 +13,7 @@ static void passthrough_add_raw_byte(EncoderState *state, uint8_t raw) __reentra
   state->passthrough.data = raw;
 }
 
-static uint8_t passthrough_next_encoded_byte(EncoderState *state, uint8_t *encoded) __reentrant {
+static uint8_t passthrough_next_encoded_byte(EncoderState *state, uint8_t *encoded, bool flush) __reentrant {
   if (state->passthrough.count < 1) {
     return 0;
   }
@@ -30,6 +30,9 @@ static void passthrough_init_decoder(DecoderState *state) {
 static uint8_t passthrough_add_encoded_byte(DecoderState *state, uint8_t encoded) __reentrant {
   state->passthrough.data = encoded;
   state->passthrough.count = 1;
+  if (encoded == 0) {
+    return 1;
+  }
   return 0;
 }
 

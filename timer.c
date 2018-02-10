@@ -22,7 +22,7 @@ void init_timer() {
 
   do {
     t1cnt.byte[0] = T1CNTL;
-    t1cnt.byte[1] = T1CNTH; 
+    t1cnt.byte[1] = T1CNTH;
   } while (t1cnt.val <= 0xA000);
 
   // Stop timer
@@ -46,9 +46,14 @@ void reset_timer() {
 
 void t1_isr(void) __interrupt T1_VECTOR
 {
-  if (timerCounter % 1000 == 0) {
-    //BLUE_LED = !BLUE_LED;
-  }
+  // if (timerCounter % 1000 == 0) {
+  //   BLUE_LED = !BLUE_LED;
+  // }
   timerCounter++;
 }
 
+void delay(uint32_t msec) {
+  uint32_t start_time;
+  start_time = timerCounter;
+  while(timerCounter - start_time < msec);
+}
