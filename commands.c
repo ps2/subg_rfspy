@@ -28,11 +28,18 @@ CommandHandler handlers[] = {
   /* 9  */ cmd_read_register,
   /* 10 */ cmd_set_mode_registers,
   /* 11 */ cmd_set_sw_encoding,
+  /* 12 */ cmd_set_preamble,
 };
 
 void do_cmd(uint8_t cmd) {
   if (cmd > 0 && cmd < sizeof(handlers)/sizeof(handlers[0])) {
     handlers[cmd]();
+  } else {
+    while(serial_rx_avail() > 0) {
+      serial_rx_byte();
+    }
+    serial_tx_byte(RESPONSE_CODE_UNKNOWN_COMMAND);
+    serial_flush();
   }
 }
 
@@ -50,9 +57,13 @@ void cmd_set_sw_encoding() {
   EncodingType encoding_type;
 
   encoding_type = serial_rx_byte();
-  set_encoding_type(encoding_type);
+  if (set_encoding_type(encoding_type)) {
+    serial_tx_byte(RESPONSE_CODE_SUCCESS);
+  } else {
+    serial_tx_byte(RESPONSE_CODE_PARAM_ERROR); // Error: encoding type not supported
+  }
+  serial_flush();
 }
-
 
 void cmd_set_mode_registers() {
   uint8_t register_mode;
@@ -87,7 +98,7 @@ void cmd_set_mode_registers() {
       mode_registers_add(registers, addr, value);
     }
   }
-  serial_tx_byte(0);
+  serial_tx_byte(RESPONSE_CODE_SUCCESS);
   serial_flush();
 }
 
@@ -105,24 +116,28 @@ void cmd_get_packet() {
 }
 
 void cmd_get_state() {
+  serial_tx_byte(RESPONSE_CODE_SUCCESS);
   serial_tx_str("OK");
 }
 
 void cmd_get_version() {
+  serial_tx_byte(RESPONSE_CODE_SUCCESS);
   serial_tx_str("subg_rfspy 2.0");
 }
 
 void cmd_send_packet() {
   uint8_t channel;
   uint8_t repeat_count;
-  uint8_t delay_ms;
+  uint16_t delay_ms;
+  uint16_t preamble_extend_ms;
   uint8_t len;
   channel = serial_rx_byte();
   repeat_count = serial_rx_byte();
-  delay_ms = serial_rx_byte();
+  delay_ms = serial_rx_word();
+  preamble_extend_ms = serial_rx_word();
   len = serial_rx_avail();
-  send_packet_from_serial(channel, repeat_count, delay_ms, len);
-  serial_tx_byte(0);
+  send_packet_from_serial(channel, repeat_count, delay_ms, preamble_extend_ms, len);
+  serial_tx_byte(RESPONSE_CODE_SUCCESS);
   serial_flush();
 }
 
@@ -130,26 +145,28 @@ void cmd_send_packet() {
 void cmd_send_and_listen() {
   uint8_t send_channel;
   uint8_t repeat_count;
-  uint8_t delay_ms;
+  uint16_t delay_ms;
   uint8_t listen_channel;
   uint32_t timeout_ms;
   uint8_t retry_count;
+  uint16_t preamble_extend_ms;
   uint8_t result;
   uint8_t len;
 
   send_channel = serial_rx_byte();
   repeat_count = serial_rx_byte();
-  delay_ms = serial_rx_byte();
+  delay_ms = serial_rx_word();
   listen_channel = serial_rx_byte();
   timeout_ms = serial_rx_long();
   retry_count = serial_rx_byte();
+  preamble_extend_ms = serial_rx_word();
   len = serial_rx_avail();
 
-  send_packet_from_serial(send_channel, repeat_count, delay_ms, len);
+  send_packet_from_serial(send_channel, repeat_count, delay_ms, preamble_extend_ms, len);
   result = get_packet_and_write_to_serial(listen_channel, timeout_ms, use_pktlen);
 
-  while (result == ERROR_RX_TIMEOUT && retry_count > 0) {
-    resend_from_tx_buf(send_channel);
+  while (result == RESPONSE_CODE_RX_TIMEOUT && retry_count > 0) {
+    send_from_tx_buf(send_channel, preamble_extend_ms);
     result = get_packet_and_write_to_serial(listen_channel, timeout_ms, use_pktlen);
     retry_count--;
   }
@@ -166,6 +183,7 @@ void cmd_read_register() {
   uint8_t value;
   addr = serial_rx_byte();
   value = get_register(addr);
+  serial_tx_byte(RESPONSE_CODE_SUCCESS);
   serial_tx_byte(value);
   serial_flush();
 }
@@ -198,4 +216,14 @@ void cmd_led() {
   led = serial_rx_byte();
   mode = serial_rx_byte();
   led_set_mode(led, mode);//0, 1, 2 = Off, On, Auto
+  serial_tx_byte(RESPONSE_CODE_SUCCESS);
+  serial_flush();
+}
+
+void cmd_set_preamble() {
+  uint16_t preamble_word;
+  preamble_word = serial_rx_word();
+  radio_set_preamble(preamble_word);
+  serial_tx_byte(RESPONSE_CODE_SUCCESS);
+  serial_flush();
 }

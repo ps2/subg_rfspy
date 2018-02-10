@@ -6,10 +6,9 @@
 #include "radio.h"
 #include "timer.h"
 #include "commands.h"
-#include "delay.h"
 
-static uint8_t green_mode = 2;
-static uint8_t blue_mode = 2;
+static uint8_t __xdata green_mode = 2;
+static uint8_t __xdata blue_mode = 2;
 
 mode_registers __xdata tx_registers;
 mode_registers __xdata rx_registers;
@@ -47,6 +46,15 @@ void led_set_state(uint8_t led, uint8_t command)
 		}
 	}
 }
+
+void toggle_green() {
+	GREEN_LED = !GREEN_LED;
+}
+
+void toggle_blue() {
+	BLUE_LED = !BLUE_LED;
+}
+
 
 uint8_t get_register(uint8_t addr) {
   uint8_t value;
@@ -168,7 +176,7 @@ uint8_t get_register(uint8_t addr) {
 
 uint8_t set_register(uint8_t addr, uint8_t value) {
   uint8_t rval;
-  rval = 1;
+  rval = RESPONSE_CODE_SUCCESS;
   switch(addr) {
     case 0x00:
       SYNC1 = value;
@@ -279,7 +287,7 @@ uint8_t set_register(uint8_t addr, uint8_t value) {
       PA_TABLE0 = value;
       break;
     default:
-      rval = 2;
+      rval = RESPONSE_CODE_PARAM_ERROR;
   }
 	return rval;
 }

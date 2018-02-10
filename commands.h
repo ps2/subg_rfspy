@@ -1,8 +1,11 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
-#define ERROR_RX_TIMEOUT 0xaa
-#define ERROR_CMD_INTERRUPTED 0xbb
+#define RESPONSE_CODE_RX_TIMEOUT 0xaa
+#define RESPONSE_CODE_CMD_INTERRUPTED 0xbb
+#define RESPONSE_CODE_SUCCESS 0xdd
+#define RESPONSE_CODE_PARAM_ERROR 0x11
+#define RESPONSE_CODE_UNKNOWN_COMMAND 0x22
 
 enum RegisterMode {
   RegisterModeTx = 0x01,

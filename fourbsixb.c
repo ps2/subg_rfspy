@@ -16,12 +16,20 @@ void fourbsixb_add_raw_byte(EncoderState *state, uint8_t raw) __reentrant {
   state->fourbsixb.bits_avail += 12;
 }
 
-uint8_t fourbsixb_next_encoded_byte(EncoderState *state, uint8_t *encoded) __reentrant {
-  if (state->fourbsixb.bits_avail < 8) {
+uint8_t fourbsixb_next_encoded_byte(EncoderState *state, uint8_t *encoded, bool flush) __reentrant {
+  if (state->fourbsixb.bits_avail < 8 && !flush) {
     return 0;
   }
-  *encoded = state->fourbsixb.acc >> (8-state->fourbsixb.bits_avail);
-  state->fourbsixb.bits_avail -= 8;
+  if (state->fourbsixb.bits_avail == 0) {
+    return 0;
+  }
+  if (flush && state->fourbsixb.bits_avail < 8) {
+    *encoded = state->fourbsixb.acc << (8-state->fourbsixb.bits_avail);
+    state->fourbsixb.bits_avail = 0;
+  } else {
+    *encoded = state->fourbsixb.acc >> (state->fourbsixb.bits_avail-8);
+    state->fourbsixb.bits_avail -= 8;
+  }
   return 1;
 }
 
