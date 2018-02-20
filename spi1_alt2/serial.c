@@ -4,7 +4,7 @@
 #include "serial.h"
 #include "radio.h"
 
-#define SPI_BUF_LEN 220 
+#define SPI_BUF_LEN 220
 
 volatile uint8_t __xdata spi_input_buf[SPI_BUF_LEN];
 volatile uint8_t input_size = 0;
@@ -20,9 +20,13 @@ volatile uint8_t ready_to_send = 0;
 
 volatile uint8_t serial_data_available;
 
-#define SPI_MODE_WAIT 0
-#define SPI_MODE_SIZE 1
-#define SPI_MODE_XFER 2
+volatile uint8_t transferring = 0;
+
+#define SPI_MODE_IDLE 0
+#define SPI_MODE_SKIP_NEXT_BYTE 1
+#define SPI_MODE_TX_SIZE 2
+#define SPI_MODE_RX_SIZE 3
+#define SPI_MODE_XFER 4
 volatile uint8_t spi_mode;
 
 volatile uint8_t master_send_size = 0;
@@ -30,13 +34,12 @@ volatile uint8_t slave_send_size = 0;
 
 
 /***************************************************************************
- * 
- * SPI encoding: 
+ *
+ * SPI encoding:
  *
  * Master sends a 0x99 byte, followed by number of bytes that will be sent.
- * Before second byte xfer, slave loads up buffer with number of bytes
- * available. 
- * 
+ * Slave sends back number of bytes available during second xfer.
+ *
  */
 
 
@@ -88,30 +91,30 @@ void configure_serial()
 
   IRCON2 &= ~BIT2; // Clear UTX1IF
   IEN2 |= BIT3;    // Enable UTX1IE interrupt
+
+  U1DBUF = 0x44;
 }
 
 void rx1_isr(void) __interrupt URX1_VECTOR {
   uint8_t value;
   value = U1DBUF;
 
-  if (spi_mode == SPI_MODE_WAIT && value == 0x99) {
-    if (ready_to_send) {
-      slave_send_size = output_size;
-      ready_to_send = 0;
-    } else {
-      slave_send_size = 0;
+  if (spi_mode == SPI_MODE_TX_SIZE) {
+    if (value != 0x99) {
+      // Error!
     }
-    spi_mode = SPI_MODE_SIZE;
-    U1DBUF = slave_send_size;
+    spi_mode = SPI_MODE_RX_SIZE;
     return;
   }
 
-  if (spi_mode == SPI_MODE_SIZE) {
+  if (spi_mode == SPI_MODE_RX_SIZE) {
     master_send_size = value;
     if (master_send_size > 0 || slave_send_size > 0) {
       spi_mode = SPI_MODE_XFER;
+      IRCON2 |= BIT2; // Trigger UTX1IF
     } else {
-      spi_mode = SPI_MODE_WAIT;
+      spi_mode = SPI_MODE_IDLE;
+      transferring = 0;
     }
     return;
   }
@@ -130,31 +133,61 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
       }
     }
     if (slave_send_size == 0 && master_send_size == 0) {
-      spi_mode = SPI_MODE_WAIT;
+      spi_mode = SPI_MODE_IDLE;
     }
   }
 }
 
 void tx1_isr(void) __interrupt UTX1_VECTOR {
   IRCON2 &= ~BIT2; // Clear UTX1IF
-  if (spi_mode == SPI_MODE_SIZE || spi_mode == SPI_MODE_XFER) {
+
+  if (spi_mode == SPI_MODE_SKIP_NEXT_BYTE) {
+    spi_mode = SPI_MODE_IDLE;
+    return;
+  }
+
+  if (spi_mode == SPI_MODE_IDLE) {
+    if (ready_to_send) {
+      slave_send_size = output_size;
+      ready_to_send = 0;
+      U1DBUF = output_size;
+    } else {
+      U1DBUF = 0;
+    }
+    spi_mode = SPI_MODE_TX_SIZE;
+    return;
+  }
+
+  if (spi_mode == SPI_MODE_XFER) {
+    // The first byte we send here is pre-emptive; transfer hasn't started
+    // SPI transfer starts when SSN is selected
+    if (U0CSR & U0CSR_ACTIVE) {
+      transferring = 1;
+    }
+
     if (slave_send_size > 0 && output_size > 0) {
       slave_send_size--;
-      if (slave_send_size == 0 && master_send_size == 0) {
-        spi_mode = SPI_MODE_WAIT;
-      }
       U1DBUF = spi_output_buf[output_tail_idx];
       output_size--;
       output_tail_idx++;
       if (output_tail_idx >= SPI_BUF_LEN) {
         output_tail_idx = 0;
       }
+      if (output_size == 0 && master_send_size == 0) {
+        spi_mode = SPI_MODE_SKIP_NEXT_BYTE;
+      }
     } else {
-      U1DBUF = 0x99;
+      // Filler for when we are receiving data, but not sending anything
+      U1DBUF = 0x98;
     }
   } else {
-    U1DBUF = 0x99;
+    // Filler
+    U1DBUF = 0x97;
   }
+}
+
+uint8_t serial_rx_avail() {
+  return input_size;
 }
 
 uint8_t serial_rx_byte() {
@@ -170,7 +203,7 @@ uint8_t serial_rx_byte() {
     serial_data_available = 0;
   }
   return s_data;
-} 
+}
 
 uint16_t serial_rx_word() {
   return (serial_rx_byte() << 8) + serial_rx_byte();
@@ -190,9 +223,6 @@ void serial_tx_byte(uint8_t tx_byte) {
     }
   }
   spi_output_buf[output_head_idx] = tx_byte;
-  if (tx_byte == 0) {
-    ready_to_send = 1;
-  }
   output_head_idx++;
   if (output_head_idx >= SPI_BUF_LEN) {
     output_head_idx = 0;
@@ -200,12 +230,21 @@ void serial_tx_byte(uint8_t tx_byte) {
   output_size++;
 }
 
+void serial_flush() {
+  ready_to_send = 1;
+  while(output_size > 0) {
+    if (transferring & !(U0CSR & U0CSR_ACTIVE)) {
+      // If SSN is deselected while transferring, treat as a cancel
+      // and flush out bytes manually until finished
+      IRCON2 |= BIT2; // Trigger UTX1IF
+    }
+  }
+}
+
 void serial_tx_str(const char *str) {
   while(*str != 0) {
     serial_tx_byte(*str);
     str++;
   }
-  serial_tx_byte(0);
+  serial_flush();
 }
-
-

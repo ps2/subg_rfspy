@@ -12,13 +12,14 @@ TARGET_BUILD := ${SERIAL_TYPE}_${BOARD_TYPE}_${RADIO_LOCALE}_${CODE_LOC_NAME}
 
 CC=sdcc
 
-LDFLAGS=--xram-loc 0xf000 --xram-size 0x1000 --code-loc ${CODE_LOC}
-CFLAGS=-I. -I${SERIAL_TYPE} --verbose ${RADIO_LOCALE_DEF} -D${BOARD_TYPE} ${BOARD_PARAMS} ${SERIAL_PARAMS}
+LDFLAGS=--xram-loc 0xf000 --model-medium --xram-size 0x1000 --code-loc ${CODE_LOC} --code-size 0x8000
+CFLAGS=-I. -I${SERIAL_TYPE} --model-medium --verbose ${RADIO_LOCALE_DEF} -D${BOARD_TYPE} ${BOARD_PARAMS} ${SERIAL_PARAMS}
 
 default: output output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 
-common_modules = radio.rel main.rel timer.rel \
-	           commands.rel delay.rel hardware.rel
+common_modules = radio.rel main.rel timer.rel encoding.rel manchester.rel \
+	           fourbsixb.rel commands.rel hardware.rel packet_buffer.rel \
+						 fifo.rel
 
 clean:
 	rm -rf output/${TARGET_BUILD}
