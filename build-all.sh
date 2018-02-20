@@ -29,10 +29,12 @@ make -f Makefile.spi1_alt2 RADIO_LOCALE=WW
 # TI stick
 ############################################################################
 # USA:
-#make -f Makefile.usb_ep0
-#make -f Makefile.usb_ep0 CODE_LOC=0x1400 CODE_LOC_NAME=CCBOOTLOADER
+make -f Makefile.usb_ep0
+make -f Makefile.spi1_alt2 BOARD_TYPE=TI_DONGLE
+make -f Makefile.usb_ep0 CODE_LOC=0x1400 CODE_LOC_NAME=CCBOOTLOADER
 # Worldwide:
-#make -f Makefile.usb_ep0 RADIO_LOCALE=WW
-#make -f Makefile.usb_ep0 RADIO_LOCALE=WW CODE_LOC=0x1400 CODE_LOC_NAME=CCBOOTLOADER
+make -f Makefile.usb_ep0 RADIO_LOCALE=WW
+make -f Makefile.spi1_alt2 BOARD_TYPE=TI_DONGLE RADIO_LOCALE=WW
+make -f Makefile.usb_ep0 RADIO_LOCALE=WW CODE_LOC=0x1400 CODE_LOC_NAME=CCBOOTLOADER
 
 exit 0
