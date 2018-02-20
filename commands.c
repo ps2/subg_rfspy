@@ -29,6 +29,7 @@ CommandHandler handlers[] = {
   /* 10 */ cmd_set_mode_registers,
   /* 11 */ cmd_set_sw_encoding,
   /* 12 */ cmd_set_preamble,
+  /* 13 */ cmd_reset_radio_config
 };
 
 void do_cmd(uint8_t cmd) {
@@ -224,6 +225,14 @@ void cmd_set_preamble() {
   uint16_t preamble_word;
   preamble_word = serial_rx_word();
   radio_set_preamble(preamble_word);
+  serial_tx_byte(RESPONSE_CODE_SUCCESS);
+  serial_flush();
+}
+
+void cmd_reset_radio_config() {
+  configure_radio();
+  set_encoding_type(EncodingTypeNone);
+  radio_set_preamble(0);
   serial_tx_byte(RESPONSE_CODE_SUCCESS);
   serial_flush();
 }
