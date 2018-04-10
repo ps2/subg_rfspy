@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "fifo.h"
 
-static volatile uint8_t fifo_count(fifo_buffer const *b) {
+volatile uint8_t fifo_count(fifo_buffer const *b) {
     return (b ? (b->head - b->tail) : 0);
 }
 

@@ -45,16 +45,16 @@ int main(void)
   init_timer();
   EA = 1;
 
+  configure_serial();
+  configure_radio();
+
   //LED test
   led_set_state(0, 1); //GREEN_LED = 1;
-  delay(200);
+  delay(100);
   led_set_state(0, 0); //GREEN_LED = 0;
   led_set_state(1, 1); //BLUE_LED = 1;
-  delay(200);
+  delay(100);
   led_set_state(1, 0); //BLUE_LED = 0;
-
-  configure_radio();
-  configure_serial();
 
   while(1) {
     //led_set_state(0,2);

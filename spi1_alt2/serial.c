@@ -3,30 +3,26 @@
 #include "hardware.h"
 #include "serial.h"
 #include "radio.h"
+#include "fifo.h"
 
-#define SPI_BUF_LEN 220
+#define SPI_BUF_LEN 128
 
-volatile uint8_t __xdata spi_input_buf[SPI_BUF_LEN];
-volatile uint8_t input_size = 0;
-volatile uint8_t input_head_idx = 0;
-volatile uint8_t input_tail_idx = 0;
+static fifo_buffer __xdata input_buffer;
+static volatile uint8_t __xdata input_buffer_mem[SPI_BUF_LEN];
 
-volatile uint8_t __xdata spi_output_buf[SPI_BUF_LEN];
-volatile uint8_t output_size = 0;
-volatile uint8_t output_head_idx = 0;
-volatile uint8_t output_tail_idx = 0;
+static fifo_buffer __xdata output_buffer;
+static volatile uint8_t __xdata output_buffer_mem[SPI_BUF_LEN];
 
 volatile uint8_t ready_to_send = 0;
 
 volatile uint8_t serial_data_available;
 
-volatile uint8_t transferring = 0;
+volatile uint8_t xfer_remaining = 0;
 
 #define SPI_MODE_IDLE 0
-#define SPI_MODE_SKIP_NEXT_BYTE 1
-#define SPI_MODE_TX_SIZE 2
-#define SPI_MODE_RX_SIZE 3
-#define SPI_MODE_XFER 4
+#define SPI_MODE_TX_SIZE 1
+#define SPI_MODE_RX_SIZE 2
+#define SPI_MODE_XFER 3
 volatile uint8_t spi_mode;
 
 volatile uint8_t master_send_size = 0;
@@ -93,6 +89,10 @@ void configure_serial()
   IEN2 |= BIT3;    // Enable UTX1IE interrupt
 
   U1DBUF = 0x44;
+
+  // Initialize fifos
+  fifo_init(&input_buffer, input_buffer_mem, SPI_BUF_LEN);
+  fifo_init(&output_buffer, output_buffer_mem, SPI_BUF_LEN);
 }
 
 void rx1_isr(void) __interrupt URX1_VECTOR {
@@ -102,6 +102,7 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
   if (spi_mode == SPI_MODE_TX_SIZE) {
     if (value != 0x99) {
       // Error!
+      return;
     }
     spi_mode = SPI_MODE_RX_SIZE;
     return;
@@ -111,29 +112,27 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
     master_send_size = value;
     if (master_send_size > 0 || slave_send_size > 0) {
       spi_mode = SPI_MODE_XFER;
+      xfer_remaining = (slave_send_size > master_send_size) ? slave_send_size : master_send_size;
       IRCON2 |= BIT2; // Trigger UTX1IF
     } else {
       spi_mode = SPI_MODE_IDLE;
-      transferring = 0;
+      led_set_state(1, 0); //BLUE_LED = 0;
     }
     return;
   }
 
-  if (spi_mode == SPI_MODE_XFER && input_size < master_send_size) {
-    if (input_size < SPI_BUF_LEN) {
-      spi_input_buf[input_head_idx] = value;
-      input_head_idx++;
-      if (input_head_idx >= SPI_BUF_LEN) {
-        input_head_idx = 0;
-      }
-      input_size++;
-      if (input_size == master_send_size) {
+  if (spi_mode == SPI_MODE_XFER) {
+    if (fifo_count(&input_buffer) < master_send_size) {
+      fifo_put(&input_buffer, value);
+      if (fifo_count(&input_buffer) == master_send_size) {
         master_send_size = 0;
         serial_data_available = 1;
       }
     }
-    if (slave_send_size == 0 && master_send_size == 0) {
+    xfer_remaining--;
+    if (xfer_remaining == 0) {
       spi_mode = SPI_MODE_IDLE;
+      led_set_state(1, 0); //BLUE_LED = 0;
     }
   }
 }
@@ -141,16 +140,11 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
 void tx1_isr(void) __interrupt UTX1_VECTOR {
   IRCON2 &= ~BIT2; // Clear UTX1IF
 
-  if (spi_mode == SPI_MODE_SKIP_NEXT_BYTE) {
-    spi_mode = SPI_MODE_IDLE;
-    return;
-  }
-
   if (spi_mode == SPI_MODE_IDLE) {
     if (ready_to_send) {
-      slave_send_size = output_size;
-      ready_to_send = 0;
-      U1DBUF = output_size;
+      slave_send_size = fifo_count(&output_buffer);
+      U1DBUF = slave_send_size;
+      led_set_state(1, 1); //BLUE_LED = 0;
     } else {
       U1DBUF = 0;
     }
@@ -159,22 +153,10 @@ void tx1_isr(void) __interrupt UTX1_VECTOR {
   }
 
   if (spi_mode == SPI_MODE_XFER) {
-    // The first byte we send here is pre-emptive; transfer hasn't started
-    // SPI transfer starts when SSN is selected
-    if (U0CSR & U0CSR_ACTIVE) {
-      transferring = 1;
-    }
-
-    if (slave_send_size > 0 && output_size > 0) {
-      slave_send_size--;
-      U1DBUF = spi_output_buf[output_tail_idx];
-      output_size--;
-      output_tail_idx++;
-      if (output_tail_idx >= SPI_BUF_LEN) {
-        output_tail_idx = 0;
-      }
-      if (output_size == 0 && master_send_size == 0) {
-        spi_mode = SPI_MODE_SKIP_NEXT_BYTE;
+    if (slave_send_size > 0) {
+      U1DBUF = fifo_get(&output_buffer);
+      if (fifo_empty(&output_buffer)) {
+        slave_send_size = 0;
       }
     } else {
       // Filler for when we are receiving data, but not sending anything
@@ -187,19 +169,14 @@ void tx1_isr(void) __interrupt UTX1_VECTOR {
 }
 
 uint8_t serial_rx_avail() {
-  return input_size;
+  return fifo_count(&input_buffer);
 }
 
 uint8_t serial_rx_byte() {
   uint8_t s_data;
-  while(!SERIAL_DATA_AVAILABLE);
-  s_data = spi_input_buf[input_tail_idx];
-  input_tail_idx++;
-  if (input_tail_idx >= SPI_BUF_LEN) {
-    input_tail_idx = 0;
-  }
-  input_size--;
-  if (input_size == 0) {
+  while(!serial_data_available);
+  s_data = fifo_get(&input_buffer);
+  if (fifo_empty(&input_buffer)) {
     serial_data_available = 0;
   }
   return s_data;
@@ -214,31 +191,18 @@ uint32_t serial_rx_long() {
 }
 
 void serial_tx_byte(uint8_t tx_byte) {
-  if (output_size >= SPI_BUF_LEN) {
-    // drop oldest byte
-    output_size--;
-    output_tail_idx++;
-    if (output_tail_idx >= SPI_BUF_LEN) {
-      output_tail_idx = 0;
-    }
-  }
-  spi_output_buf[output_head_idx] = tx_byte;
-  output_head_idx++;
-  if (output_head_idx >= SPI_BUF_LEN) {
-    output_head_idx = 0;
-  }
-  output_size++;
+  fifo_put(&output_buffer, tx_byte);
 }
 
 void serial_flush() {
-  ready_to_send = 1;
-  while(output_size > 0) {
-    if (transferring & !(U0CSR & U0CSR_ACTIVE)) {
-      // If SSN is deselected while transferring, treat as a cancel
-      // and flush out bytes manually until finished
-      IRCON2 |= BIT2; // Trigger UTX1IF
-    }
+  if (fifo_empty(&output_buffer)) {
+    return;
   }
+  ready_to_send = 1;
+  led_set_state(0, 1); //GREEN_LED = 0;
+  while(!fifo_empty(&output_buffer));
+  led_set_state(0, 0); //GREEN_LED = 0;
+  ready_to_send = 0;
 }
 
 void serial_tx_str(const char *str) {
