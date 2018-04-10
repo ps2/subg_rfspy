@@ -67,7 +67,8 @@ void configure_radio()
   MCSM2     = 0x07;
   MCSM1     = 0x30;
   MCSM0     = 0x18; // main radio control state machine configuration
-  FOCCFG    = 0x17; // frequency offset compensation configuration BSCFG     = 0x6C;
+  FOCCFG    = 0x17; // frequency offset compensation configuration
+  BSCFG     = 0x6C; // bit synchronization configuration
   FREND1    = 0xB6; // front end tx configuration
   FREND0    = 0x11; // front end tx configuration
   FSCAL3    = 0xE9; // frequency synthesizer calibration
