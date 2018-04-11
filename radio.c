@@ -193,7 +193,8 @@ void rf_isr(void) __interrupt RF_VECTOR {
 
 void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint16_t delay_ms, uint16_t preamble_extend_ms, uint8_t len) {
   uint8_t s_byte;
-  uint8_t send_count = 0;
+  uint16_t send_count = 0;
+  uint16_t total_send_count = repeat_count + 1;
 
   Encoder encoder;
   EncoderState encoder_state;
@@ -201,8 +202,6 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint16_t del
   init_encoder(encoding_type, &encoder, &encoder_state);
 
   mode_registers_enact(&tx_registers);
-
-  //toggle_green();
 
   CHANNR = channel;
 
@@ -218,8 +217,7 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint16_t del
     }
   }
 
-  repeat_count += 1;
-  while(send_count < repeat_count) {
+  while(send_count < total_send_count) {
 
     // delay
     if (send_count > 0 && delay_ms > 0) {
@@ -230,7 +228,6 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint16_t del
 
     send_count++;
   }
-  //led_set_state(1,0);
 }
 
 void send_from_tx_buf(uint8_t channel, uint16_t preamble_extend_ms) {
@@ -241,6 +238,7 @@ void send_from_tx_buf(uint8_t channel, uint16_t preamble_extend_ms) {
   mdmcfg2_save = MDMCFG2;
   pktlen_save = PKTLEN;
   pktctrl0_save = PKTCTRL0;
+
 
   if (preamble_word != 0) {
     // save and turn off preamble/sync registers
@@ -270,12 +268,10 @@ void send_from_tx_buf(uint8_t channel, uint16_t preamble_extend_ms) {
   while(MARCSTATE!=MARC_STATE_TX);
 
   if (preamble_extend_ms > 0) {
-    led_set_state(1, 1); //BLUE_LED = 1;
     delay(preamble_extend_ms);
     if(preamble_word==0) {
       TCON |= 0b10;  // Manually trigger RFTXRX vector.
     }
-    led_set_state(1, 0); //BLUE_LED = 0;
   }
 
   if (preamble_word != 0) {
@@ -294,6 +290,7 @@ void send_from_tx_buf(uint8_t channel, uint16_t preamble_extend_ms) {
   PKTLEN = pktlen_save;
   MDMCFG2 = mdmcfg2_save;
   PKTCTRL0 = pktctrl0_save;
+
 }
 
 uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uint8_t use_pktlen) {
@@ -321,12 +318,10 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
 
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
-  //led_set_state(1,1);
 
   while(1) {
     // Waiting for isr to put radio bytes into rx_fifo
     if (!fifo_empty(&rx_fifo)) {
-      //led_set_state(0,1);
 
       d_byte = fifo_get(&rx_fifo);
       read_idx++;
@@ -352,14 +347,12 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
 
       // Check for end of packet
       if (use_pktlen && read_idx == PKTLEN) {
-        //led_set_state(0,0);
         break;
       }
     }
 
     if (timeout_ms > 0 && timerCounter > timeout_ms) {
       rval = RESPONSE_CODE_RX_TIMEOUT;
-      //led_set_state(1,0);
       break;
     }
 
@@ -373,7 +366,6 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
     }
   }
   RFST = RFST_SIDLE;
-  //led_set_state(1,0);
   return rval;
 }
 
