@@ -28,4 +28,7 @@ bool fifo_put(fifo_buffer *b, uint8_t data_byte);
  /* size must be a power of 2 */
 void fifo_init(fifo_buffer *b, volatile uint8_t *buffer, uint8_t size);
 
+
+volatile uint8_t fifo_count(fifo_buffer const *b);
+
 #endif // FIFO_H

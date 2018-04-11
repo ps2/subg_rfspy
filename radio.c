@@ -202,7 +202,7 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint16_t del
 
   mode_registers_enact(&tx_registers);
 
-  toggle_green();
+  //toggle_green();
 
   CHANNR = channel;
 
