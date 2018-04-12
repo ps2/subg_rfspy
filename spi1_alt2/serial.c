@@ -20,9 +20,8 @@ volatile uint8_t serial_data_available;
 volatile uint8_t xfer_remaining = 0;
 
 #define SPI_MODE_IDLE 0
-#define SPI_MODE_TX_SIZE 1
-#define SPI_MODE_RX_SIZE 2
-#define SPI_MODE_XFER 3
+#define SPI_MODE_SIZE 1
+#define SPI_MODE_XFER 2
 volatile uint8_t spi_mode;
 
 volatile uint8_t master_send_size = 0;
@@ -95,28 +94,44 @@ void configure_serial()
   fifo_init(&output_buffer, output_buffer_mem, SPI_BUF_LEN);
 }
 
+void end_transfer() {
+  led_set_state(1, 0); //BLUE_LED = 0;
+
+  // Disable interrupts
+  TCON &= ~BIT3; // Clear URX1IF
+  URX1IE = 0;    // Disable URX1IE interrupt
+  IRCON2 &= ~BIT2; // Clear UTX1IF
+  IEN2 &= ~BIT3;    // Disable UTX1IE interrupt
+
+  while(U1CSR & U1CSR_ACTIVE);
+
+  spi_mode = SPI_MODE_IDLE;
+
+  // Enable interrupts
+  URX1IE = 1;    // Enable URX1IE interrupt
+  IEN2 |= BIT3;    // Enable UTX1IE interrupt
+}
+
 void rx1_isr(void) __interrupt URX1_VECTOR {
   uint8_t value;
   value = U1DBUF;
 
-  if (spi_mode == SPI_MODE_TX_SIZE) {
+  if (spi_mode == SPI_MODE_IDLE) {
     if (value != 0x99) {
-      // Error!
-      return;
+      end_transfer();
+    } else {
+      spi_mode = SPI_MODE_SIZE;
     }
-    spi_mode = SPI_MODE_RX_SIZE;
     return;
   }
 
-  if (spi_mode == SPI_MODE_RX_SIZE) {
+  if (spi_mode == SPI_MODE_SIZE) {
+    spi_mode = SPI_MODE_XFER;
     master_send_size = value;
     if (master_send_size > 0 || slave_send_size > 0) {
-      spi_mode = SPI_MODE_XFER;
       xfer_remaining = (slave_send_size > master_send_size) ? slave_send_size : master_send_size;
-      IRCON2 |= BIT2; // Trigger UTX1IF
     } else {
-      spi_mode = SPI_MODE_IDLE;
-      led_set_state(1, 0); //BLUE_LED = 0;
+      end_transfer();
     }
     return;
   }
@@ -131,8 +146,7 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
     }
     xfer_remaining--;
     if (xfer_remaining == 0) {
-      spi_mode = SPI_MODE_IDLE;
-      led_set_state(1, 0); //BLUE_LED = 0;
+      end_transfer();
     }
   }
 }
@@ -148,23 +162,17 @@ void tx1_isr(void) __interrupt UTX1_VECTOR {
     } else {
       U1DBUF = 0;
     }
-    spi_mode = SPI_MODE_TX_SIZE;
     return;
   }
 
-  if (spi_mode == SPI_MODE_XFER) {
-    if (slave_send_size > 0) {
-      U1DBUF = fifo_get(&output_buffer);
-      if (fifo_empty(&output_buffer)) {
-        slave_send_size = 0;
-      }
-    } else {
-      // Filler for when we are receiving data, but not sending anything
-      U1DBUF = 0x98;
+  if (slave_send_size > 0) {
+    U1DBUF = fifo_get(&output_buffer);
+    if (fifo_empty(&output_buffer)) {
+      slave_send_size = 0;
     }
   } else {
-    // Filler
-    U1DBUF = 0x97;
+    // Filler for when we are receiving data, but not sending anything
+    U1DBUF = 0x98;
   }
 }
 
