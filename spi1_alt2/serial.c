@@ -17,8 +17,6 @@ volatile uint8_t ready_to_send = 0;
 
 volatile uint8_t serial_data_available;
 
-volatile uint8_t xfer_remaining = 0;
-
 #define SPI_MODE_IDLE 0
 #define SPI_MODE_SIZE 1
 #define SPI_MODE_XFER 2
@@ -94,31 +92,14 @@ void configure_serial()
   fifo_init(&output_buffer, output_buffer_mem, SPI_BUF_LEN);
 }
 
-void end_transfer() {
-  led_set_state(1, 0); //BLUE_LED = 0;
-
-  // Disable interrupts
-  TCON &= ~BIT3; // Clear URX1IF
-  URX1IE = 0;    // Disable URX1IE interrupt
-  IRCON2 &= ~BIT2; // Clear UTX1IF
-  IEN2 &= ~BIT3;    // Disable UTX1IE interrupt
-
-  while(U1CSR & U1CSR_ACTIVE);
-
-  spi_mode = SPI_MODE_IDLE;
-
-  // Enable interrupts
-  URX1IE = 1;    // Enable URX1IE interrupt
-  IEN2 |= BIT3;    // Enable UTX1IE interrupt
-}
-
 void rx1_isr(void) __interrupt URX1_VECTOR {
   uint8_t value;
   value = U1DBUF;
 
   if (spi_mode == SPI_MODE_IDLE) {
     if (value != 0x99) {
-      end_transfer();
+      // TODO: record out-of-sync error
+
     } else {
       spi_mode = SPI_MODE_SIZE;
     }
@@ -128,10 +109,8 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
   if (spi_mode == SPI_MODE_SIZE) {
     spi_mode = SPI_MODE_XFER;
     master_send_size = value;
-    if (master_send_size > 0 || slave_send_size > 0) {
-      xfer_remaining = (slave_send_size > master_send_size) ? slave_send_size : master_send_size;
-    } else {
-      end_transfer();
+    if (master_send_size == 0 && slave_send_size == 0) {
+      spi_mode = SPI_MODE_IDLE;
     }
     return;
   }
@@ -144,9 +123,8 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
         serial_data_available = 1;
       }
     }
-    xfer_remaining--;
-    if (xfer_remaining == 0) {
-      end_transfer();
+    if(master_send_size == 0 && slave_send_size == 0) {
+      spi_mode = SPI_MODE_IDLE;
     }
   }
 }
@@ -158,7 +136,6 @@ void tx1_isr(void) __interrupt UTX1_VECTOR {
     if (ready_to_send) {
       slave_send_size = fifo_count(&output_buffer);
       U1DBUF = slave_send_size;
-      led_set_state(1, 1); //BLUE_LED = 0;
     } else {
       U1DBUF = 0;
     }
@@ -182,7 +159,11 @@ uint8_t serial_rx_avail() {
 
 uint8_t serial_rx_byte() {
   uint8_t s_data;
-  while(!serial_data_available);
+  if (!serial_data_available) {
+    while(!serial_data_available);
+    while(U1CSR & U1CSR_ACTIVE);
+    spi_mode = SPI_MODE_IDLE;
+  }
   s_data = fifo_get(&input_buffer);
   if (fifo_empty(&input_buffer)) {
     serial_data_available = 0;
@@ -207,9 +188,9 @@ void serial_flush() {
     return;
   }
   ready_to_send = 1;
-  led_set_state(0, 1); //GREEN_LED = 0;
+  led_set_state(0, 1); //GREEN_LED;
   while(!fifo_empty(&output_buffer));
-  led_set_state(0, 0); //GREEN_LED = 0;
+  led_set_state(0, 0); //GREEN_LED;
   ready_to_send = 0;
 }
 
