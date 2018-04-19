@@ -13,7 +13,7 @@
 
 static volatile uint8_t __xdata radio_rx_buf[RX_FIFO_SIZE];
 static fifo_buffer __xdata rx_fifo;
-static uint8_t __xdata rx_len;
+static volatile uint8_t rx_len;
 
 static volatile uint8_t __xdata radio_tx_buf[TX_BUF_SIZE];
 static volatile uint8_t __xdata radio_tx_buf_read_idx;
@@ -114,7 +114,7 @@ bool set_encoding_type(EncodingType new_type) {
   }
 }
 
-static void put_rx(uint8_t data) {
+inline void put_rx(uint8_t data) {
   if (!fifo_put(&rx_fifo, data)) {
     rx_overflow++;
   }
@@ -328,7 +328,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
 
       // Send status code
       if (read_idx == 1) {
-        led_set_state(1, 1); //BLUE_LED;
+        led_set_diagnostic(1, 1); //BLUE_LED_PIN;
         serial_tx_byte(RESPONSE_CODE_SUCCESS);
       }
       // First two bytes are rssi and packet #
@@ -367,7 +367,13 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
     }
   }
   RFST = RFST_SIDLE;
-  led_set_state(1, 0); //BLUE_LED;
+  while(MARCSTATE!=MARC_STATE_IDLE);
+
+  while(!fifo_empty(&rx_fifo)) {
+    fifo_get(&rx_fifo);
+  }
+
+  led_set_diagnostic(1, 0); //BLUE_LED_PIN;
   return rval;
 }
 
