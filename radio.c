@@ -114,7 +114,7 @@ bool set_encoding_type(EncodingType new_type) {
   }
 }
 
-inline void put_rx(uint8_t data) {
+static void put_rx(uint8_t data) {
   if (!fifo_put(&rx_fifo, data)) {
     rx_overflow++;
   }
