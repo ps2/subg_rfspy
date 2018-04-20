@@ -328,7 +328,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
 
       // Send status code
       if (read_idx == 1) {
-        led_set_diagnostic(1, 1); //BLUE_LED_PIN;
+        led_set_diagnostic(BlueLED, LEDStateOn);
         serial_tx_byte(RESPONSE_CODE_SUCCESS);
       }
       // First two bytes are rssi and packet #
@@ -373,7 +373,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
     fifo_get(&rx_fifo);
   }
 
-  led_set_diagnostic(1, 0); //BLUE_LED_PIN;
+  led_set_diagnostic(BlueLED, LEDStateOff);
   return rval;
 }
 
