@@ -17,7 +17,7 @@ static uint16_t __xdata packet_data_buf_tail;
 static uint16_t __xdata packet_data_buf_len;
 static uint8_t __xdata packet_lengths_head;
 static uint8_t __xdata packet_lengths_tail;
-static uint8_t __xdata packet_count;
+static volatile uint8_t __xdata packet_count;
 
 uint8_t enqueue_packet(const uint8_t *packet_data, uint16_t packet_len) {
   uint16_t i;
