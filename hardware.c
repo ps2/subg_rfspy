@@ -7,54 +7,56 @@
 #include "timer.h"
 #include "commands.h"
 
-static uint8_t __xdata green_mode = 2;
-static uint8_t __xdata blue_mode = 2;
+static LEDMode green_mode = 0;
+static LEDMode blue_mode = 0;
 
-mode_registers __xdata tx_registers;
-mode_registers __xdata rx_registers;
+mode_registers tx_registers;
+mode_registers rx_registers;
 
-void led_set_mode(uint8_t led, uint8_t new_mode)
+void init_leds() {
+	// init LEDS
+	HARDWARE_LED_INIT;       // see hardware.h
+	GREEN_LED_PIN = 0;
+	BLUE_LED_PIN = 0;
+
+  led_set_mode(GreenLED, LEDModeOff);
+  led_set_mode(BlueLED, LEDModeOff);
+}
+
+
+void led_set_mode(LEDNumber led, LEDMode new_mode)
 {
-	if(led == 0){
+	if(led == GreenLED){
 		green_mode = new_mode;
-		if(new_mode != 2){
-			GREEN_LED = new_mode;
+		if(new_mode == LEDModeOn) {
+			GREEN_LED_PIN = LEDStateOn;
+		} else if (new_mode == LEDModeOff) {
+			GREEN_LED_PIN = LEDStateOff;
 		}
 	}
-	else if(led == 1){
+	else if(led == BlueLED){
 		blue_mode = new_mode;
-		if(new_mode != 2){
-			BLUE_LED = new_mode;
+		if(new_mode == LEDModeOn) {
+			BLUE_LED_PIN = LEDStateOn;
+		} else if (new_mode == LEDModeOff) {
+			BLUE_LED_PIN = LEDStateOff;
 		}
 	}
 }
 
-void led_set_state(uint8_t led, uint8_t command)
+void led_set_diagnostic(LEDNumber led, LEDState state)
 {
-	if(led == 0){
-		if(green_mode == 2){
-			if(command < 2){
-				GREEN_LED = command;
-			}
+	if(led == GreenLED){
+		if(green_mode == LEDModeDiagnostic){
+			GREEN_LED_PIN = state;
 		}
 	}
-	else if(led == 1){
-		if(blue_mode == 2){
-			if(command < 2){
-				BLUE_LED = command;
-			}
+	else if(led == BlueLED){
+		if(blue_mode == LEDModeDiagnostic){
+			BLUE_LED_PIN = state;
 		}
 	}
 }
-
-void toggle_green() {
-	GREEN_LED = !GREEN_LED;
-}
-
-void toggle_blue() {
-	BLUE_LED = !BLUE_LED;
-}
-
 
 uint8_t get_register(uint8_t addr) {
   uint8_t value;

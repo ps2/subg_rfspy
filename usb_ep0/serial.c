@@ -12,13 +12,13 @@ void configure_serial()
 {
 
   setup_led( );
-//  led_set_state(0,1);
-//  led_set_state(0,0);
+//  led_set_diagnostic(0,1);
+//  led_set_diagnostic(0,0);
   usb_init( );
   usb_enable( );
   usb_up( );
   usb_flush( );
-  /// GREEN_LED = 1;
+  /// GREEN_LED_PIN = 1;
 
 }
 
@@ -27,10 +27,10 @@ uint8_t serial_has_bytes()
 
   usb_flush( );
   if (usb_pollchar() == USB_READ_AGAIN) {
-//    led_set_state(0,0);
+//    led_set_diagnostic(0,0);
     return 0;
   }
-//  led_set_state(0,1);
+//  led_set_diagnostic(0,1);
   return 1;
 }
 
@@ -51,9 +51,9 @@ uint32_t serial_rx_long() {
 
 
 void flush_serial( ) {
-//  led_set_state(0,2);
+//  led_set_diagnostic(0,2);
   usb_flush( );
-//  led_set_state(0,2);
+//  led_set_diagnostic(0,2);
 }
 
 void serial_tx_byte(uint8_t tx_byte) {

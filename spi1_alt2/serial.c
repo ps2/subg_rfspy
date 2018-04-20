@@ -188,9 +188,9 @@ void serial_flush() {
     return;
   }
   ready_to_send = 1;
-  led_set_state(0, 1); //GREEN_LED;
+  led_set_diagnostic(GreenLED, LEDStateOn);
   while(!fifo_empty(&output_buffer));
-  led_set_state(0, 0); //GREEN_LED;
+  led_set_diagnostic(GreenLED, LEDStateOff);
   ready_to_send = 0;
 }
 

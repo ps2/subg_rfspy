@@ -35,11 +35,7 @@ int main(void)
   while (CLKCON & CLKCON_OSC);
   SLEEP |= SLEEP_OSC_PD;
 
-
-  // init LEDS
-  HARDWARE_LED_INIT;       // see hardware.h
-  led_set_state(0, 0); //GREEN_LED = 0;
-  led_set_state(1, 0); //BLUE_LED = 0;
+  init_leds();
 
   // Global interrupt enable
   init_timer();
@@ -49,15 +45,14 @@ int main(void)
   configure_radio();
 
   //LED test
-  led_set_state(0, 1); //GREEN_LED = 1;
+  GREEN_LED_PIN = 1;
   delay(100);
-  led_set_state(0, 0); //GREEN_LED = 0;
-  led_set_state(1, 1); //BLUE_LED = 1;
+  GREEN_LED_PIN = 0;
+  BLUE_LED_PIN = 1;
   delay(100);
-  led_set_state(1, 0); //BLUE_LED = 0;
+  BLUE_LED_PIN = 0;
 
   while(1) {
-    //led_set_state(0,2);
     get_command();
   }
 }
