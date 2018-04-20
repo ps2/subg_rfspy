@@ -5,26 +5,26 @@
 #include <stdint.h>
 #include "fifo.h"
 
-volatile uint8_t fifo_count(fifo_buffer const *b) {
+volatile uint8_t fifo_count(fifo_buffer const *b) __reentrant {
     return (b ? (b->head - b->tail) : 0);
 }
 
-bool fifo_full(fifo_buffer const *b) {
+bool fifo_full(fifo_buffer const *b) __reentrant {
     return (b ? (fifo_count(b) == b->buffer_len) : true);
 }
 
-bool fifo_empty(fifo_buffer const *b) {
+bool fifo_empty(fifo_buffer const *b) __reentrant {
     return (b ? (fifo_count(b) == 0) : true);
 }
 
-uint8_t fifo_peek(fifo_buffer const *b) {
+uint8_t fifo_peek(fifo_buffer const *b) __reentrant {
     if (b) {
         return (b->buffer[b->tail % b->buffer_len]);
     }
     return 0;
 }
 
-uint8_t fifo_get(fifo_buffer * b) {
+uint8_t fifo_get(fifo_buffer * b) __reentrant {
     uint8_t data_byte = 0;
 
     if (!fifo_empty(b)) {
@@ -34,7 +34,7 @@ uint8_t fifo_get(fifo_buffer * b) {
     return data_byte;
 }
 
-bool fifo_put(fifo_buffer * b, uint8_t data_byte) {
+bool fifo_put(fifo_buffer * b, uint8_t data_byte) __reentrant {
     bool status = false;        /* return value */
 
     if (b) {

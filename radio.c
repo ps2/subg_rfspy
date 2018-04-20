@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <string.h>
 #include "hardware.h"
 #include "serial.h"
 #include "commands.h"
@@ -114,7 +115,7 @@ bool set_encoding_type(EncodingType new_type) {
   }
 }
 
-static void put_rx(uint8_t data) {
+static void put_rx(uint8_t data) __reentrant {
   if (!fifo_put(&rx_fifo, data)) {
     rx_overflow++;
   }
@@ -315,6 +316,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
   CHANNR = channel;
 
   rx_len = 0;
+  memset(radio_rx_buf, 0x11, RX_FIFO_SIZE);
 
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
@@ -366,6 +368,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
       break;
     }
   }
+
   RFST = RFST_SIDLE;
   led_set_state(1, 0); //BLUE_LED;
   return rval;
