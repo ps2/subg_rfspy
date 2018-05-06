@@ -13,8 +13,8 @@ TARGET_BUILD := ${SERIAL_TYPE}_${BOARD_TYPE}_${RADIO_LOCALE}_${CODE_LOC_NAME}
 CC ?= sdcc
 
 ifeq ($(CC),sdcc)
-	LDFLAGS=--xram-loc 0xf000 --model-medium --xram-size 0x1000 --code-loc ${CODE_LOC} --code-size 0x8000
-  CFLAGS=--model-medium --verbose
+	LDFLAGS+=--xram-loc 0xf000 --model-medium --xram-size 0x1000 --code-loc ${CODE_LOC} --code-size 0x8000
+  CFLAGS+=--model-medium --verbose
 endif
 
 CFLAGS+=-I. -I${SERIAL_TYPE} ${RADIO_LOCALE_DEF} -D${BOARD_TYPE} ${BOARD_PARAMS} ${SERIAL_PARAMS}
