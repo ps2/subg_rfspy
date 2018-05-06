@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "hardware.h"
 #include "manchester_state.h"
 #include "fourbsixb_state.h"
 

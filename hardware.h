@@ -1,10 +1,13 @@
 #ifndef HARDWARE_H
 #define HARDWARE_H
 
-#ifndef NON_NATIVE_TEST
+#ifndef MOCK_HARDWARE
 #include <cc1110.h>  // /usr/share/sdcc/include/mcs51/cc1110.h
-#include "ioCCxx10_bitdef.h"
+#else
+#include "mock_hardware.h"
 #endif
+
+#include "ioCCxx10_bitdef.h"
 
 #define BIT0 0x1
 #define BIT1 0x2

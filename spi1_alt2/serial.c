@@ -7,10 +7,10 @@
 
 #define SPI_BUF_LEN 128
 
-static volatile fifo_buffer __xdata input_buffer;
+static fifo_buffer __xdata input_buffer;
 static volatile uint8_t __xdata input_buffer_mem[SPI_BUF_LEN];
 
-static volatile fifo_buffer __xdata output_buffer;
+static fifo_buffer __xdata output_buffer;
 static volatile uint8_t __xdata output_buffer_mem[SPI_BUF_LEN];
 
 volatile uint8_t ready_to_send = 0;
