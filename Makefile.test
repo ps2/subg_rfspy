@@ -8,6 +8,6 @@ CC := gcc
 
 CFLAGS+=-DRUN_TESTS
 
-extra_modules = mock_hardware.rel
+extra_modules = mock_hardware.rel tests.rel
 
 include common.mk

@@ -79,11 +79,12 @@ int main(void)
    pthread_create(&mock_hardware_thread, NULL, run_mock_hardware, NULL);
 #endif
 
+  main_init();
+
 #ifdef RUN_TESTS
   pthread_t run_tests_thread;
   pthread_create(&run_tests_thread, NULL, run_tests, NULL);
 #endif
 
-  main_init();
   main_loop();
 }

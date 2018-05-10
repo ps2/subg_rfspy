@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <stdio.h>
 #include "hardware.h"
 #include "serial.h"
 #include "radio.h"
@@ -24,6 +25,7 @@ volatile uint8_t spi_mode;
 
 volatile uint8_t master_send_size = 0;
 volatile uint8_t slave_send_size = 0;
+volatile uint8_t xfer_size = 0;
 
 
 /***************************************************************************
@@ -85,7 +87,7 @@ void configure_serial()
   IRCON2 &= ~BIT2; // Clear UTX1IF
   IEN2 |= BIT3;    // Enable UTX1IE interrupt
 
-  U1DBUF = 0x44;
+  U1DBUF_write = 0x44;
 
   // Initialize fifos
   fifo_init(&input_buffer, input_buffer_mem, SPI_BUF_LEN);
@@ -94,10 +96,11 @@ void configure_serial()
 
 void rx1_isr(void) __interrupt URX1_VECTOR {
   uint8_t value;
-  value = U1DBUF;
+  value = U1DBUF_read;
 
   if (spi_mode == SPI_MODE_IDLE) {
     if (value != 0x99) {
+      printf("out of sync\n");
       // TODO: record out-of-sync error
 
     } else {
@@ -109,6 +112,10 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
   if (spi_mode == SPI_MODE_SIZE) {
     spi_mode = SPI_MODE_XFER;
     master_send_size = value;
+    xfer_size = master_send_size;
+    if (slave_send_size > xfer_size) {
+      xfer_size = slave_send_size;
+    }
     if (master_send_size == 0 && slave_send_size == 0) {
       spi_mode = SPI_MODE_IDLE;
     }
@@ -123,7 +130,8 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
         serial_data_available = 1;
       }
     }
-    if(master_send_size == 0 && slave_send_size == 0) {
+    xfer_size--;
+    if (xfer_size == 0) {
       spi_mode = SPI_MODE_IDLE;
     }
   }
@@ -135,21 +143,21 @@ void tx1_isr(void) __interrupt UTX1_VECTOR {
   if (spi_mode == SPI_MODE_IDLE) {
     if (ready_to_send) {
       slave_send_size = fifo_count(&output_buffer);
-      U1DBUF = slave_send_size;
+      U1DBUF_write = slave_send_size;
     } else {
-      U1DBUF = 0;
+      U1DBUF_write = 0;
     }
     return;
   }
 
   if (slave_send_size > 0) {
-    U1DBUF = fifo_get(&output_buffer);
+    U1DBUF_write = fifo_get(&output_buffer);
     if (fifo_empty(&output_buffer)) {
       slave_send_size = 0;
     }
   } else {
     // Filler for when we are receiving data, but not sending anything
-    U1DBUF = 0x98;
+    U1DBUF_write = 0x98;
   }
 }
 

@@ -1,8 +1,9 @@
 
-#include "hardware.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#include "hardware.h"
+#include "tests.h"
 
 volatile uint8_t P0_0;
 volatile uint8_t P0_1;
@@ -74,12 +75,13 @@ volatile uint8_t U1BAUD;
 volatile uint8_t U1GCR;
 volatile uint8_t URX1IE;
 volatile uint8_t IRCON2;
-volatile uint8_t U1DBUF;
-
-void t1_isr(void);
+volatile uint8_t U1DBUF_write;
+volatile uint8_t U1DBUF_read;
 
 void *run_tests(void *vargp) {
   printf("running tests\n");
+  //test_version();
+  test_sync();
   return NULL;
 }
 

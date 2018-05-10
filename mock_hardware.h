@@ -83,7 +83,8 @@ extern volatile uint8_t U1BAUD;
 extern volatile uint8_t U1GCR;
 extern volatile uint8_t URX1IE;
 extern volatile uint8_t IRCON2;
-extern volatile uint8_t U1DBUF;
+extern volatile uint8_t U1DBUF_write;
+extern volatile uint8_t U1DBUF_read;
 
 #define GREEN_LED_PIN P0_0
 #define BLUE_LED_PIN P0_1
@@ -92,5 +93,9 @@ extern volatile uint8_t U1DBUF;
 
 void *run_tests(void *vargp);
 void *run_mock_hardware(void *vargp);
+
+void t1_isr(void);  // Timer Interrupt
+void tx1_isr(void); // UTX1_VECTOR
+void rx1_isr(void); // URX1_VECTOR
 
 #endif
