@@ -3,7 +3,6 @@
 #include <stddef.h>
 #include <stdio.h>
 #include "hardware.h"
-#include "tests.h"
 
 volatile uint8_t P0_0;
 volatile uint8_t P0_1;
@@ -78,12 +77,7 @@ volatile uint8_t IRCON2;
 volatile uint8_t U1DBUF_write;
 volatile uint8_t U1DBUF_read;
 
-void *run_tests(void *vargp) {
-  printf("running tests\n");
-  //test_version();
-  test_sync();
-  return NULL;
-}
+bool mock_hardware_should_exit;
 
 void *run_mock_hardware(void *vargp) {
 
@@ -92,7 +86,7 @@ void *run_mock_hardware(void *vargp) {
 
   printf("Testing\n");
 
-  while(1) {
+  while(!mock_hardware_should_exit) {
     // Run counter
     if (T1CNTL == 255) {
       T1CNTH += 1;
@@ -101,4 +95,5 @@ void *run_mock_hardware(void *vargp) {
     t1_isr();
     //printf("SLEEP = %d\n", SLEEP);
   }
+  return NULL;
 }

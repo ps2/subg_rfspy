@@ -2,6 +2,7 @@
 #define MOCK_HARDWARE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define __reentrant
 #define __xdata
@@ -97,5 +98,7 @@ void *run_mock_hardware(void *vargp);
 void t1_isr(void);  // Timer Interrupt
 void tx1_isr(void); // UTX1_VECTOR
 void rx1_isr(void); // URX1_VECTOR
+
+extern bool mock_hardware_should_exit;
 
 #endif

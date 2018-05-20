@@ -1,7 +1,9 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 #include "hardware.h"
+#include "subg_rfspy.h"
 #include "serial.h"
 #include "radio.h"
 #include "fifo.h"
@@ -21,6 +23,7 @@ volatile uint8_t serial_data_available;
 #define SPI_MODE_IDLE 0
 #define SPI_MODE_SIZE 1
 #define SPI_MODE_XFER 2
+#define SPI_MODE_OUT_OF_SYNC 3
 volatile uint8_t spi_mode;
 
 volatile uint8_t master_send_size = 0;
@@ -98,11 +101,16 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
   uint8_t value;
   value = U1DBUF_read;
 
+  if (spi_mode == SPI_MODE_OUT_OF_SYNC) {
+    if (value == 0x99) {
+      spi_mode = SPI_MODE_SIZE;
+    }
+    return;
+  }
+
   if (spi_mode == SPI_MODE_IDLE) {
     if (value != 0x99) {
-      printf("out of sync\n");
-      // TODO: record out-of-sync error
-
+      spi_mode = SPI_MODE_OUT_OF_SYNC;
     } else {
       spi_mode = SPI_MODE_SIZE;
     }
@@ -110,6 +118,10 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
   }
 
   if (spi_mode == SPI_MODE_SIZE) {
+    if (value > SPI_BUF_LEN) {
+      spi_mode = SPI_MODE_OUT_OF_SYNC;
+      return;
+    }
     spi_mode = SPI_MODE_XFER;
     master_send_size = value;
     xfer_size = master_send_size;
@@ -157,7 +169,7 @@ void tx1_isr(void) __interrupt UTX1_VECTOR {
     }
   } else {
     // Filler for when we are receiving data, but not sending anything
-    U1DBUF_write = 0x98;
+    U1DBUF_write = 0x00;
   }
 }
 
@@ -166,11 +178,11 @@ uint8_t serial_rx_avail() {
 }
 
 uint8_t serial_rx_byte() {
+  time_t last_time;
   uint8_t s_data;
   if (!serial_data_available) {
-    while(!serial_data_available);
-    while(U1CSR & U1CSR_ACTIVE);
-    spi_mode = SPI_MODE_IDLE;
+    while(!serial_data_available && !subg_rfspy_should_exit);
+    while(U1CSR & U1CSR_ACTIVE && !subg_rfspy_should_exit);
   }
   s_data = fifo_get(&input_buffer);
   if (fifo_empty(&input_buffer)) {
@@ -197,7 +209,7 @@ void serial_flush() {
   }
   ready_to_send = 1;
   led_set_diagnostic(GreenLED, LEDStateOn);
-  while(!fifo_empty(&output_buffer));
+  while(!fifo_empty(&output_buffer) && !subg_rfspy_should_exit);
   led_set_diagnostic(GreenLED, LEDStateOff);
   ready_to_send = 0;
 }

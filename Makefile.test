@@ -6,8 +6,16 @@ BOARD_PARAMS :=
 
 CC := gcc
 
-CFLAGS+=-DRUN_TESTS
+CFLAGS+=-DRUN_TESTS -g
+
+LDFLAGS+=-g
 
 extra_modules = mock_hardware.rel tests.rel
 
 include common.mk
+
+output/${TARGET_BUILD}/check_subg_rfspy: $(common_modules) $(extra_modules) $(REL) serial.rel
+	cd output/${TARGET_BUILD} && $(CC) $(LDFLAGS) $(CFLAGS) $(common_modules) $(extra_modules) $(REL) serial.rel -o check_subg_rfspy
+
+test: output/${TARGET_BUILD}/check_subg_rfspy
+	output/${TARGET_BUILD}/check_subg_rfspy
