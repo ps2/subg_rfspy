@@ -4,6 +4,8 @@ SERIAL_PARAMS := -DUSES_USART1_TX_ISR -DUSES_USART1_RX_ISR
 BOARD_TYPE := RILEYLINK
 BOARD_PARAMS :=
 
-extra_modules = main.rel
+CC := sdcc
+
+main_module = main.rel
 
 include common.mk

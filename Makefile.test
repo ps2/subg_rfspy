@@ -10,7 +10,9 @@ CFLAGS+=-DRUN_TESTS -g -pthread
 
 LDFLAGS+=-g -pthread
 
-extra_modules = mock_hardware.rel tests.rel
+main_module = tests.rel
+
+extra_modules = mock_hardware.rel
 
 include common.mk
 
