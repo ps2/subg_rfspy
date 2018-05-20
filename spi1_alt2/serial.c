@@ -182,7 +182,6 @@ uint8_t serial_rx_byte() {
   uint8_t s_data;
   if (!serial_data_available) {
     while(!serial_data_available && !subg_rfspy_should_exit);
-    while(U1CSR & U1CSR_ACTIVE && !subg_rfspy_should_exit);
   }
   s_data = fifo_get(&input_buffer);
   if (fifo_empty(&input_buffer)) {

@@ -37,8 +37,8 @@ serial.rel: ${SERIAL_TYPE}/serial.c
 	# ${REL}
 	$(CC) $(CFLAGS) -o output/${TARGET_BUILD}/$@ -c $< $(REL)
 
-output/${TARGET_BUILD}/${TARGET_BUILD}.hex: main.rel $(common_modules) $(extra_modules) $(REL) serial.rel
-	cd output/${TARGET_BUILD} && $(CC) $(LDFLAGS) $(CFLAGS) main.rel $(common_modules) $(extra_modules) $(REL) serial.rel  -o ${TARGET_BUILD}.hex
+output/${TARGET_BUILD}/${TARGET_BUILD}.hex: $(common_modules) $(extra_modules) $(REL) serial.rel
+	cd output/${TARGET_BUILD} && $(CC) $(LDFLAGS) $(CFLAGS) $(common_modules) $(extra_modules) $(REL) serial.rel  -o ${TARGET_BUILD}.hex
 
 install: output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 	sudo cc-tool -n ${TARGET_DEVICE} --log install.log -ew output/${TARGET_BUILD}/${TARGET_BUILD}.hex

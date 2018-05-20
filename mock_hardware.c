@@ -84,7 +84,7 @@ void *run_mock_hardware(void *vargp) {
   // Mark oscillator as powered up and stable
   SLEEP |= SLEEP_XOSC_S;
 
-  printf("Testing\n");
+  printf("starting mock hardware thread\n");
 
   while(!mock_hardware_should_exit) {
     // Run counter

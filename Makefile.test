@@ -6,9 +6,9 @@ BOARD_PARAMS :=
 
 CC := gcc
 
-CFLAGS+=-DRUN_TESTS -g
+CFLAGS+=-DRUN_TESTS -g -pthread
 
-LDFLAGS+=-g
+LDFLAGS+=-g -pthread
 
 extra_modules = mock_hardware.rel tests.rel
 

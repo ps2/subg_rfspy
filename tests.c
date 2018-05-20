@@ -43,6 +43,7 @@ void do_spi(const uint8_t *input, uint8_t *output, uint8_t len)
   }
 
   uint8_t throwaway_rx_buf[RESPONSE_BUFFER_SIZE];
+
   // if (input) {
   //   hexprint("tx: ", input, len);
   // } else {
@@ -52,9 +53,6 @@ void do_spi(const uint8_t *input, uint8_t *output, uint8_t len)
   if (output == NULL) {
     output = throwaway_rx_buf;
   }
-
-  // Assert CSR
-  U1CSR |= U1CSR_ACTIVE;
 
   uint8_t slave_byte;
   for (int i=0; i<len; i++) {
@@ -67,9 +65,6 @@ void do_spi(const uint8_t *input, uint8_t *output, uint8_t len)
     rx1_isr();
     tiny_sleep();
   }
-
-  // De-assert CSR
-  U1CSR &= ~U1CSR_ACTIVE;
 
   // if (output) {
   //   hexprint("rx: ", output, len);
@@ -172,6 +167,7 @@ void check_sync_error_dropped_byte()
 }
 
 void *run_main(void *vargp) {
+  printf("starting main thread\n");
   subg_rfspy_main();
   return NULL;
 }

@@ -1,6 +1,8 @@
 #ifndef SERIAL_H
 #define SERIAL_H
 
+#include <stdint.h>
+
 #define SERIAL_DATA_AVAILABLE serial_data_available
 
 extern volatile uint8_t serial_data_available;
