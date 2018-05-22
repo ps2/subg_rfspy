@@ -15,34 +15,7 @@ uint8_t use_pktlen = 0;
 
 typedef void (*CommandHandler)();
 
-CommandHandler handlers[] = {
-  /* 0  */ 0,
-  /* 1  */ cmd_get_state,
-  /* 2  */ cmd_get_version,
-  /* 3  */ cmd_get_packet,
-  /* 4  */ cmd_send_packet,
-  /* 5  */ cmd_send_and_listen,
-  /* 6  */ cmd_update_register,
-  /* 7  */ cmd_reset,
-  /* 8  */ cmd_led,
-  /* 9  */ cmd_read_register,
-  /* 10 */ cmd_set_mode_registers,
-  /* 11 */ cmd_set_sw_encoding,
-  /* 12 */ cmd_set_preamble,
-  /* 13 */ cmd_reset_radio_config
-};
-
-void do_cmd(uint8_t cmd) {
-  if (cmd > 0 && cmd < sizeof(handlers)/sizeof(handlers[0])) {
-    handlers[cmd]();
-  } else {
-    while(serial_rx_avail() > 0) {
-      serial_rx_byte();
-    }
-    serial_tx_byte(RESPONSE_CODE_UNKNOWN_COMMAND);
-    serial_flush();
-  }
-}
+void do_cmd(uint8_t cmd);
 
 void get_command() {
   uint8_t cmd;
@@ -235,4 +208,33 @@ void cmd_reset_radio_config() {
   radio_set_preamble(0);
   serial_tx_byte(RESPONSE_CODE_SUCCESS);
   serial_flush();
+}
+
+CommandHandler handlers[] = {
+  /* 0  */ 0,
+  /* 1  */ cmd_get_state,
+  /* 2  */ cmd_get_version,
+  /* 3  */ cmd_get_packet,
+  /* 4  */ cmd_send_packet,
+  /* 5  */ cmd_send_and_listen,
+  /* 6  */ cmd_update_register,
+  /* 7  */ cmd_reset,
+  /* 8  */ cmd_led,
+  /* 9  */ cmd_read_register,
+  /* 10 */ cmd_set_mode_registers,
+  /* 11 */ cmd_set_sw_encoding,
+  /* 12 */ cmd_set_preamble,
+  /* 13 */ cmd_reset_radio_config
+};
+
+void do_cmd(uint8_t cmd) {
+  if (cmd > 0 && cmd < sizeof(handlers)/sizeof(handlers[0])) {
+    handlers[cmd]();
+  } else {
+    while(serial_rx_avail() > 0) {
+      serial_rx_byte();
+    }
+    serial_tx_byte(RESPONSE_CODE_UNKNOWN_COMMAND);
+    serial_flush();
+  }
 }

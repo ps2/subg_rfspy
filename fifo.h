@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "hardware.h"
 
 struct fifo_buffer_t {
     volatile uint8_t head;     /* first byte of data */

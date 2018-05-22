@@ -1,16 +1,19 @@
 
 #include <stdint.h>
+#include <stdio.h>
+#include <time.h>
 #include "hardware.h"
+#include "subg_rfspy.h"
 #include "serial.h"
 #include "radio.h"
 #include "fifo.h"
 
 #define SPI_BUF_LEN 128
 
-static volatile fifo_buffer __xdata input_buffer;
+static fifo_buffer __xdata input_buffer;
 static volatile uint8_t __xdata input_buffer_mem[SPI_BUF_LEN];
 
-static volatile fifo_buffer __xdata output_buffer;
+static fifo_buffer __xdata output_buffer;
 static volatile uint8_t __xdata output_buffer_mem[SPI_BUF_LEN];
 
 volatile uint8_t ready_to_send = 0;
@@ -20,10 +23,12 @@ volatile uint8_t serial_data_available;
 #define SPI_MODE_IDLE 0
 #define SPI_MODE_SIZE 1
 #define SPI_MODE_XFER 2
+#define SPI_MODE_OUT_OF_SYNC 3
 volatile uint8_t spi_mode;
 
 volatile uint8_t master_send_size = 0;
 volatile uint8_t slave_send_size = 0;
+volatile uint8_t xfer_size = 0;
 
 
 /***************************************************************************
@@ -85,7 +90,7 @@ void configure_serial()
   IRCON2 &= ~BIT2; // Clear UTX1IF
   IEN2 |= BIT3;    // Enable UTX1IE interrupt
 
-  U1DBUF = 0x44;
+  U1DBUF_write = 0x44;
 
   // Initialize fifos
   fifo_init(&input_buffer, input_buffer_mem, SPI_BUF_LEN);
@@ -94,12 +99,18 @@ void configure_serial()
 
 void rx1_isr(void) __interrupt URX1_VECTOR {
   uint8_t value;
-  value = U1DBUF;
+  value = U1DBUF_read;
+
+  if (spi_mode == SPI_MODE_OUT_OF_SYNC) {
+    if (value == 0x99) {
+      spi_mode = SPI_MODE_SIZE;
+    }
+    return;
+  }
 
   if (spi_mode == SPI_MODE_IDLE) {
     if (value != 0x99) {
-      // TODO: record out-of-sync error
-
+      spi_mode = SPI_MODE_OUT_OF_SYNC;
     } else {
       spi_mode = SPI_MODE_SIZE;
     }
@@ -107,8 +118,16 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
   }
 
   if (spi_mode == SPI_MODE_SIZE) {
+    if (value > SPI_BUF_LEN) {
+      spi_mode = SPI_MODE_OUT_OF_SYNC;
+      return;
+    }
     spi_mode = SPI_MODE_XFER;
     master_send_size = value;
+    xfer_size = master_send_size;
+    if (slave_send_size > xfer_size) {
+      xfer_size = slave_send_size;
+    }
     if (master_send_size == 0 && slave_send_size == 0) {
       spi_mode = SPI_MODE_IDLE;
     }
@@ -123,7 +142,8 @@ void rx1_isr(void) __interrupt URX1_VECTOR {
         serial_data_available = 1;
       }
     }
-    if(master_send_size == 0 && slave_send_size == 0) {
+    xfer_size--;
+    if (xfer_size == 0) {
       spi_mode = SPI_MODE_IDLE;
     }
   }
@@ -135,21 +155,21 @@ void tx1_isr(void) __interrupt UTX1_VECTOR {
   if (spi_mode == SPI_MODE_IDLE) {
     if (ready_to_send) {
       slave_send_size = fifo_count(&output_buffer);
-      U1DBUF = slave_send_size;
+      U1DBUF_write = slave_send_size;
     } else {
-      U1DBUF = 0;
+      U1DBUF_write = 0;
     }
     return;
   }
 
   if (slave_send_size > 0) {
-    U1DBUF = fifo_get(&output_buffer);
+    U1DBUF_write = fifo_get(&output_buffer);
     if (fifo_empty(&output_buffer)) {
       slave_send_size = 0;
     }
   } else {
     // Filler for when we are receiving data, but not sending anything
-    U1DBUF = 0x98;
+    U1DBUF_write = 0x00;
   }
 }
 
@@ -158,11 +178,10 @@ uint8_t serial_rx_avail() {
 }
 
 uint8_t serial_rx_byte() {
+  time_t last_time;
   uint8_t s_data;
   if (!serial_data_available) {
-    while(!serial_data_available);
-    while(U1CSR & U1CSR_ACTIVE);
-    spi_mode = SPI_MODE_IDLE;
+    while(!serial_data_available && !subg_rfspy_should_exit);
   }
   s_data = fifo_get(&input_buffer);
   if (fifo_empty(&input_buffer)) {
@@ -189,7 +208,7 @@ void serial_flush() {
   }
   ready_to_send = 1;
   led_set_diagnostic(GreenLED, LEDStateOn);
-  while(!fifo_empty(&output_buffer));
+  while(!fifo_empty(&output_buffer) && !subg_rfspy_should_exit);
   led_set_diagnostic(GreenLED, LEDStateOff);
   ready_to_send = 0;
 }

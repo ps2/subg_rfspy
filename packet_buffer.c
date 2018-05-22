@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "hardware.h"
 
 // FIFO queue for packets
 

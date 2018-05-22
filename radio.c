@@ -167,6 +167,8 @@ void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
       // Letting RFD go empty will make the radio stop TX mode.
       //RFD = 0;
       break;
+    case TxStatePreambleDefault:
+      break;
     }
 
   }
@@ -316,7 +318,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
   CHANNR = channel;
 
   rx_len = 0;
-  memset(radio_rx_buf, 0x11, RX_FIFO_SIZE);
+  memset((void*)radio_rx_buf, 0x11, RX_FIFO_SIZE);
 
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
