@@ -30,6 +30,6 @@ bool fifo_put(fifo_buffer *b, uint8_t data_byte) __reentrant;
 void fifo_init(fifo_buffer *b, volatile uint8_t *buffer, uint8_t size);
 
 
-volatile uint8_t fifo_count(fifo_buffer const *b);
+volatile uint8_t fifo_count(fifo_buffer const *b) __reentrant;
 
 #endif // FIFO_H
