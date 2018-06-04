@@ -94,6 +94,22 @@ void *run_mock_hardware(void *vargp) {
     T1CNTL += 1;
     t1_isr();
     //printf("SLEEP = %d\n", SLEEP);
+
+    // Watch radio strobe registers
+    if(RFST == RFST_SIDLE) {
+      MARCSTATE = MARC_STATE_IDLE;
+      RFST = RFST_SNOP;
+    }
+
+    if(RFST == RFST_SRX) {
+      MARCSTATE = MARC_STATE_RX;
+      RFST = RFST_SNOP;
+    }
+
+    if(RFST == RFST_STX) {
+      MARCSTATE = MARC_STATE_TX;
+      RFST = RFST_SNOP;
+    }
   }
   return NULL;
 }

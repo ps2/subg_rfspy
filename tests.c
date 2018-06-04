@@ -73,11 +73,8 @@ void do_spi(const uint8_t *input, uint8_t *output, uint8_t len)
   // }
 }
 
-CommandResponse run_command(uint8_t len, const uint8_t *data, int max_xfer_cycles)
+void send_command(uint8_t len, const uint8_t *data)
 {
-  CommandResponse response;
-
-  memset(&response, 0, sizeof(CommandResponse));
   uint8_t tmp[2];
   tmp[0] = 0x99;
   tmp[1] = len;
@@ -90,6 +87,12 @@ CommandResponse run_command(uint8_t len, const uint8_t *data, int max_xfer_cycle
     }
   }
   do_spi(data, NULL, len);
+}
+
+CommandResponse wait_for_response(int max_xfer_cycles) {
+  CommandResponse response;
+  uint8_t tmp[2];
+  memset(&response, 0, sizeof(CommandResponse));
   while(max_xfer_cycles--) {
     tmp[0] = 0x99;
     tmp[1] = 0;
@@ -105,6 +108,13 @@ CommandResponse run_command(uint8_t len, const uint8_t *data, int max_xfer_cycle
     response.timed_out = true;
   }
   return response;
+}
+
+
+CommandResponse run_command(uint8_t len, const uint8_t *data, int max_xfer_cycles)
+{
+  send_command(len, data);
+  return wait_for_response(max_xfer_cycles);
 }
 
 void check_version()
@@ -166,6 +176,40 @@ void check_sync_error_dropped_byte()
   assert(strcmp((const char*)response.data, "subg_rfspy 2.0") == 0);
 }
 
+void check_interrupting_command()
+{
+  CommandResponse response;
+  uint8_t tmp[6];
+
+  // Send a listening command
+  tmp[0] = CmdGetPacket;
+  tmp[1] = 1; // channel
+  tmp[2] = 1; // timeout(4)
+  tmp[3] = 0; // timeout(3)
+  tmp[4] = 0; // timeout(2)
+  tmp[5] = 0; // timeout(1)
+  send_command(6, tmp);
+
+  // Interrupt it with a set register command
+  tmp[0] = CmdUpdateRegister;
+  tmp[1] = 1; // SYNC0
+  tmp[2] = 0xff;
+  send_command(3, tmp);
+
+  response = wait_for_response(20);
+
+  // Expected response: command interrupted
+  assert(!response.timed_out);
+  assert(response.response_code == RESPONSE_CODE_CMD_INTERRUPTED);
+
+  response = wait_for_response(20);
+
+  // Expected response: command successful
+  assert(!response.timed_out);
+  assert(response.response_code == RESPONSE_CODE_SUCCESS);
+}
+
+
 void *run_main(void *vargp) {
   printf("starting main thread\n");
   subg_rfspy_main();
@@ -190,6 +234,7 @@ int main(void)
   check_version();
   check_sync_error_extra_byte();
   check_sync_error_dropped_byte();
+  check_interrupting_command();
 
   subg_rfspy_should_exit = true;
   pthread_join(run_main_thread, NULL);
