@@ -273,14 +273,13 @@ void send_from_tx_buf(uint8_t channel, uint16_t preamble_extend_ms) {
   if (preamble_extend_ms > 0) {
     delay(preamble_extend_ms);
     if(preamble_word==0) {
+      tx_state = TxStateData;
       TCON |= 0b10;  // Manually trigger RFTXRX vector.
     }
   }
 
   if (preamble_word != 0) {
     stop_custom_preamble_semaphore = 1;
-  } else {
-    tx_state = TxStateData;
   }
 
   // wait for sending to finish
