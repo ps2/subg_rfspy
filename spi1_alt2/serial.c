@@ -120,11 +120,15 @@ void rx1_isr(void) __interrupt URX1_VECTOR
         spi_mode = SPI_MODE_OUT_OF_SYNC;
         return;
       }
-      spi_mode = SPI_MODE_XFER;
       master_send_size = value;
       xfer_size = master_send_size;
       if (slave_send_size > xfer_size) {
         xfer_size = slave_send_size;
+      }
+      if (xfer_size > 0) {
+        spi_mode = SPI_MODE_XFER;
+      } else {
+        spi_mode = SPI_MODE_IDLE;
       }
       break;
     case SPI_MODE_XFER:
@@ -139,6 +143,7 @@ void rx1_isr(void) __interrupt URX1_VECTOR
         xfer_size--;
       }
       if (xfer_size == 0) {
+        slave_send_size = 0;
         spi_mode = SPI_MODE_IDLE;
       }
       break;
@@ -158,9 +163,6 @@ void tx1_isr(void) __interrupt UTX1_VECTOR
   }
   else if (slave_send_size > 0) {
     U1DBUF_write = fifo_get(&output_buffer);
-    if (fifo_empty(&output_buffer)) {
-      slave_send_size = 0;
-    }
   } else {
     // Filler for when we are receiving data, but not sending anything
     U1DBUF_write = 0x00;
@@ -207,9 +209,7 @@ void serial_flush()
     return;
   }
   ready_to_send = 1;
-  led_set_diagnostic(GreenLED, LEDStateOn);
   while(!fifo_empty(&output_buffer) && !subg_rfspy_should_exit);
-  led_set_diagnostic(GreenLED, LEDStateOff);
   ready_to_send = 0;
 }
 
