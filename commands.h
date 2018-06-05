@@ -20,7 +20,7 @@ enum CommandCode {
   CmdSetModeRegisters = 0x0a,
   CmdSetSWEncoding    = 0x0b,
   CmdSetPreamble      = 0x0c,
-  CmdResetRadioConfig = 0x0e
+  CmdResetRadioConfig = 0x0d
 };
 
 enum RegisterMode {

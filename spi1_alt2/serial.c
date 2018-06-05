@@ -210,6 +210,7 @@ void serial_flush()
   }
   ready_to_send = 1;
   while(!fifo_empty(&output_buffer) && !subg_rfspy_should_exit);
+  while(slave_send_size != 0 && !subg_rfspy_should_exit);
   ready_to_send = 0;
 }
 
