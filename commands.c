@@ -96,7 +96,7 @@ void cmd_get_state() {
 
 void cmd_get_version() {
   serial_tx_byte(RESPONSE_CODE_SUCCESS);
-  serial_tx_str("subg_rfspy 2.0");
+  serial_tx_str("subg_rfspy 2.1");
 }
 
 void cmd_send_packet() {
