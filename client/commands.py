@@ -2,49 +2,63 @@ from array import array
 from struct import *
 from enum import Enum
 
-class ErrorCode(Enum):
+class ResponseCode(Enum):
     PROTOCOL_SYNC       = 0x00
+    UNKNOWN_COMMAND     = 0x22
     RX_TIMEOUT          = 0xaa
     COMMAND_INTERRUPTED = 0xbb
+    COMMAND_SUCCESS     = 0xdd
 
+class CommandCode(Enum):
+    GET_STATE          = 1
+    GET_VERSION        = 2
+    GET_PACKET         = 3
+    SEND_PACKET        = 4
+    SEND_AND_LISTEN    = 5
+    UPDATE_REGISTER    = 6
+    RESET              = 7
+    LED                = 8
+    READ_REGISTER      = 9
+    SET_MODE_REGISTERS = 10
+    SET_SW_ENCODING    = 11
+    SET_PREAMBLE       = 12
+    RADIO_RESET_CONFIG = 13
 
 class ByteResponse:
     def __init__(self, response_data):
-        if len(response_data) > 1:
-            raise ValueError
-        self.response_byte =  array('B', response_data)[0]
+        self.response_code = ResponseCode(response_data[0])
+        self.response_data = bytearray(response_data[1:])
 
     def __repr__(self):
-        return "ByteResponse(\"%d\")" % self.response_byte
+        return "ByteResponse(%s, %s)" % (self.response_code, self.response_data.hex())
 
 
 class StringResponse:
     def __init__(self, response_data):
-        self.response_data = array('B', response_data)
+        self.response_code = ResponseCode(response_data[0])
+        self.response_data = array('B', response_data[1:])
 
     def __repr__(self):
         return "StringResponse(\"%s\")" % self.response_data.tostring().decode("UTF-8")
 
 class PacketResponse:
     def __init__(self, response_data):
-        self.error_code = None
-        if len(response_data) < 2:
-            self.error_code = ErrorCode(response_data[0])
-        else:
-            self.rssi_dec = response_data[0]
-            self.packet_num = response_data[1]
-            self.response_data = array('B', response_data[2:])
+        self.response_code = ResponseCode(response_data[0])
+        if self.response_code == ResponseCode.COMMAND_SUCCESS:
+            self.rssi_dec = response_data[1]
+            self.packet_num = response_data[2]
+            self.response_data = array('B', response_data[3:])
 
     def __repr__(self):
-        if self.error_code:
-            return "PacketErrorResponse(%s)" % self.error_code.name
+        if self.response_code != ResponseCode.COMMAND_SUCCESS:
+            return "ResponseCode(%s)" % self.response_code
         else:
             hex = "".join(["%02x" % x for x in self.response_data])
             return "PacketResponse(\"%s\")" % hex
 
 class GetStateCommand:
     def data(self):
-        return array('B', [1])
+        return array('B', [CommandCode.GET_STATE.value])
 
     def response_type(self):
         return StringResponse
@@ -62,7 +76,7 @@ class GetPacketCommand:
         self.timeout_ms = timeout_ms
 
     def data(self):
-        data = pack('>BBL', 3, self.channel, self.timeout_ms)
+        data = pack('>BBL', CommandCode.GET_PACKET.value, self.channel, self.timeout_ms)
         return array('B', data)
 
     def response_type(self):
@@ -77,7 +91,8 @@ class SendPacketCommand:
         self.packet_data = packet_data
 
     def data(self):
-        conf = pack('>BBBHH', 4, self.channel, self.repeat_count, self.delay_ms, self.preamble_extend_ms)
+        conf = pack('>BBBHH', CommandCode.SEND_PACKET.value, self.channel, self.repeat_count, self.delay_ms, self.preamble_extend_ms)
+        print("Send packet cmd: %s" % conf.hex())
         return array('B', conf) + self.packet_data
 
     def response_type(self):
@@ -120,7 +135,7 @@ class UpdateRegisterCommand:
         self.value = value
 
     def data(self):
-        return array('B', [6, self.register.value, self.value])
+        return array('B', [CommandCode.UPDATE_REGISTER.value, self.register.value, self.value])
 
     def response_type(self):
         return ByteResponse
@@ -136,7 +151,7 @@ class SetSoftwareEncoding:
         self.encoding = encoding
 
     def data(self):
-        return array('B', [11, self.encoding.value])
+        return array('B', [CommandCode.SET_SW_ENCODING.value, self.encoding.value])
 
     def response_type(self):
         return ByteResponse
