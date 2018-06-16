@@ -7,6 +7,7 @@
 #include "serial.h"
 #include "commands.h"
 #include "hardware.h"
+#include "version.h"
 
 #define RESPONSE_BUFFER_SIZE 128
 
@@ -123,7 +124,7 @@ void check_version()
   CommandResponse response;
   response = run_command(1, &cmd, 20);
   assert(!response.timed_out);
-  assert(strcmp((const char*)response.data, "subg_rfspy 2.0") == 0);
+  assert(strcmp((const char*)response.data, SUBG_RFSPY_VERSION) == 0);
 }
 
 void check_sync_error_extra_byte()
@@ -144,7 +145,7 @@ void check_sync_error_extra_byte()
   tmp[0] = CmdGetVersion;
   response = run_command(1, tmp, 20);
   assert(!response.timed_out);
-  assert(strcmp((const char*)response.data, "subg_rfspy 2.0") == 0);
+  assert(strcmp((const char*)response.data, SUBG_RFSPY_VERSION) == 0);
 }
 
 void check_sync_error_dropped_byte()
@@ -173,7 +174,7 @@ void check_sync_error_dropped_byte()
   tmp[0] = CmdGetVersion;
   response = run_command(1, tmp, 20);
   assert(!response.timed_out);
-  assert(strcmp((const char*)response.data, "subg_rfspy 2.0") == 0);
+  assert(strcmp((const char*)response.data, SUBG_RFSPY_VERSION) == 0);
 }
 
 void check_interrupting_command()
