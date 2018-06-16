@@ -18,7 +18,7 @@ class SPILink:
         self.spi = self.ctrl.get_port(cs=0, freq=100000)
         self.gpio = self.ctrl.get_gpio()
         direction = self.gpio.direction
-        self.gpio.set_direction(0x30, 0x10)
+        self.gpio.set_direction(0x30, 0x10) # Add reset as output
         self.gpio.write(0x10)
 
     def reset(self):
@@ -50,18 +50,30 @@ class SPILink:
         lsb_rcv = self.spi.exchange(lsb_send,readlen=readlen, duplex=True)
         return self.reverse_bits(lsb_rcv)
 
-    def do_command(self, command, timeout=1):
-        end_time = time.time() + timeout
+    def send_command(self, command):
         data = command.data()
+        if len(data) == 0:
+            print("Empty command!")
+            return
+
         if self.debug:
             print("send: %s" % self.as_hex(data))
         response = None
+        _, available = self.exchange([0x99, len(data)], readlen=2)
+        if available > 0:
+            print("Unexpected data available from client while sending command.")
+            return
+        self.exchange(data, readlen=0)
+
+    def wait_for_response(self, response_type, timeout=1):
+        end_time = time.time() + timeout
+        response = None
         while(time.time() < end_time and response == None):
-            _, available = self.exchange([0x99, len(data)], readlen=2)
-            if (len(data) > 0 or available > 0):
+            _, available = self.exchange([0x99, 0], readlen=2)
+            if (available > 0):
                 if self.debug:
-                    print("size exchange: master = %d, slave = %d" % (len(data), available))
-                rdata = self.exchange(data, readlen=available)
+                    print("response: available = %d" % available)
+                rdata = self.exchange([], readlen=available)
             else:
                 time.sleep(0.01)
             if available > 0:
@@ -70,11 +82,19 @@ class SPILink:
 
         if response == None:
             raise SPITimeout()
-        response_type = command.response_type()
         if self.debug:
             print("recv: %s" % self.as_hex(response))
         response_obj = response_type(response)
         return response_obj
+
+    def do_command(self, command, timeout=1):
+        self.send_command(command)
+        response = self.wait_for_response(command.response_type(), timeout)
+        if response.response_code != ResponseCode.COMMAND_INTERRUPTED:
+            return response
+        else:
+            print("Command interrupted...")
+            return self.wait_for_response(command.response_type(), timeout)
 
     def update_register(self, register, value):
         return self.do_command(UpdateRegisterCommand(register, value))
