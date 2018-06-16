@@ -6,6 +6,7 @@
 #include "radio.h"
 #include "commands.h"
 #include "encoding.h"
+#include "version.h"
 
 uint8_t interrupting_cmd = 0;
 
@@ -96,7 +97,7 @@ void cmd_get_state() {
 
 void cmd_get_version() {
   serial_tx_byte(RESPONSE_CODE_SUCCESS);
-  serial_tx_str("subg_rfspy 2.1");
+  serial_tx_str(SUBG_RFSPY_VERSION);
 }
 
 void cmd_send_packet() {

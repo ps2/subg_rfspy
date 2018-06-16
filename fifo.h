@@ -8,6 +8,10 @@
 #include <stdbool.h>
 #include "hardware.h"
 
+#ifdef __GNUC__
+#define inline static inline
+#endif
+
 struct fifo_buffer_t {
     volatile uint8_t head;     /* first byte of data */
     volatile uint8_t tail;     /* last byte of data */
