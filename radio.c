@@ -301,11 +301,14 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
   uint8_t d_byte = 0;
   uint8_t rval = 0;
   uint8_t encoding_error = 0;
+  uint32_t timer_start;
 
   Decoder __xdata decoder;
   DecoderState __xdata decoder_state;
 
-  reset_timer();
+  if (timeout_ms > 0) {
+    read_timer(&timer_start);
+  }
 
   mode_registers_enact(&rx_registers);
 
@@ -355,7 +358,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
       }
     }
 
-    if (timeout_ms > 0 && timerCounter > timeout_ms) {
+    if (timeout_ms > 0 && check_elapsed(timer_start, timeout_ms)) {
       rval = RESPONSE_CODE_RX_TIMEOUT;
       break;
     }
