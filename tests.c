@@ -46,11 +46,11 @@ void do_spi(const uint8_t *input, uint8_t *output, uint8_t len)
 
   uint8_t throwaway_rx_buf[RESPONSE_BUFFER_SIZE];
 
-  // if (input) {
-  //   hexprint("tx: ", input, len);
-  // } else {
-  //   printf("tx: NULL\n");
-  // }
+  if (input) {
+    hexprint("tx: ", input, len);
+  } else {
+    printf("tx: NULL\n");
+  }
 
   if (output == NULL) {
     output = throwaway_rx_buf;
@@ -68,11 +68,11 @@ void do_spi(const uint8_t *input, uint8_t *output, uint8_t len)
     tiny_sleep();
   }
 
-  // if (output) {
-  //   hexprint("rx: ", output, len);
-  // } else {
-  //   printf("rx: NULL\n");
-  // }
+  if (output) {
+    hexprint("rx: ", output, len);
+  } else {
+    printf("rx: NULL\n");
+  }
 }
 
 void send_command(uint8_t len, const uint8_t *data)
