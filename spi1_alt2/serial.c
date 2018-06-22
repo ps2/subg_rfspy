@@ -179,7 +179,6 @@ uint8_t serial_rx_avail()
 
 uint8_t serial_rx_byte()
 {
-  time_t last_time;
   uint8_t s_data;
   if (!serial_data_available) {
     while(!serial_data_available && !subg_rfspy_should_exit);

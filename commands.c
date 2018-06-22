@@ -232,7 +232,7 @@ void cmd_get_statistics()
 }
 
 
-CommandHandler handlers[] = {
+CommandHandler __xdata handlers[] = {
   /* 0  */ 0,
   /* 1  */ cmd_get_state,
   /* 2  */ cmd_get_version,

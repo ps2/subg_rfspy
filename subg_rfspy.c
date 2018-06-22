@@ -9,8 +9,8 @@
 #include "commands.h"
 #include "subg_rfspy.h"
 
-bool subg_rfspy_init_finished;
-bool subg_rfspy_should_exit;
+bool __xdata subg_rfspy_init_finished;
+bool __xdata subg_rfspy_should_exit;
 
 void subg_rfspy_main() {
   // Set the system clock source to HS XOSC and max CPU speed,
