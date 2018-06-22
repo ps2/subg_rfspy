@@ -4,38 +4,35 @@
 
 ## Pre-Requisites for Building subg_rfspy
 
-[sdcc] (http://sdcc.sourceforge.net/) package is required for this build.
-
-    sudo apt-get install sdcc
+[sdcc] (http://sdcc.sourceforge.net/) version >= 3.7.0 is required for this build. There is a [docker image](https://hub.docker.com/r/ps2docker/sdcc_docker/) available for this purpose.
 
 It's also possible to build it under Windows. The best way to do this is to:
 
-1. install SDCC
+1. install SDCC version 3.7.0
 2. install Cygwin
 3. use Cygwin to install make
 4. Use cygwin bash to build the project
 
-# Building
+To install, you'll need [cc-tool](https://github.com/dashesy/cc-tool)
 
-You'll need to select a build type, like `spi1_alt2`.  The examples below use this value, but you'll want to use the correct one for your hardware and use case.  See below for different hardware types and use cases.
+# Building and Installing
 
-Perform the build. The output file will be stored at output/uart0_alt1_RILEYLINK_US/uart0_alt1_RILEYLINK_US.hex
+```
+make -f Makefile.spi1_alt2 install
 
-    make -f Makefile.spi1_alt2
+```
 
-Perform the install:
-
-    make -f Makefile.spi1_alt2 install
+# Building and Installing using docker
+```
+docker run -v `pwd`:/subg_rfspy  ps2docker/sdcc_docker /bin/sh -c "cd /subg_rfspy; make -f Makefile.spi1_alt2
+cc-tool -n CC1110 --log install.log -ew output/spi1_alt2_RILEYLINK_US_STDLOC/spi1_alt2_RILEYLINK_US_STDLOC.hex
+```
 
 # Radio Frequency Selection
 
 This code defaults to building firmware that is tuned to 916.5 Mhz. You can also build a 'WorldWide' firmware. This changes the default frequency to 868 and tweaks a few other settings.
 
     make -f Makefile.spi1_alt2 RADIO_LOCALE=WW
-
-# RileyLink
-
-If you are using a [RileyLink](https://github.com/ps2/rileylink) via the onboard bluetooth module (which should be loaded with ble_rfspy), then you'll want to use `spi1_alt2` as your build type.
 
 # Protocol
 
@@ -49,18 +46,6 @@ See [protocol.md](protocol.md)
 Serial support is no longer supported.  See [serial.md](serial.md) for
 historical information.
 
-## Frequency Channel Selection
-
-Each channel number corresponds to a different specific frequency. Channels start with 916.5 MHz at
-Channel 0 and end with 934.4 MHz at Channel 255, in steps of about 0.07 MHz. You can select different
-channels by adjusting the CHANNR.CHAN register. Available channels are governed by the following equation:
-
-`f_carrier = (24MHz/(2^16))*(FREQ + CHAN(256 + CHANSPC_M)*2^(CHANSPC_E - 2))`
-
-The base frequency, FREQ, is set by the FREQ2, FREQ1, and FREQ0 registers. The value default value is
-2502768 (0x263070).  
-CHANSPC_M and CHANSPC_E are used to set the channel spacing, and are contained in the registers MDMCFG0
-and MDMCFG1 (bits 1:0), respectively. Their default values are 126 (0x7E) and 1.
 
 ## Supported Registers
 
