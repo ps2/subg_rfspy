@@ -1,8 +1,9 @@
 
 #include <stdint.h>
 #include "hardware.h"
+#include "timer.h"
 
-volatile uint32_t timerCounter = 0;
+volatile uint32_t __timerCounter = 0;
 
 void init_timer() {
   union {
@@ -14,6 +15,8 @@ void init_timer() {
   // 1000 is scaling mhz to cycles/msec, 128 is T1CTL.DIV, 2 is TICKSPD
   uint16_t timer_ticks_per_ms = (SYSTEM_CLOCK_MHZ * 1000) / 128 / 2;
 
+  __timerCounter = 0;
+  
   T1CTL = 0x00; // disable timer
   T1CNTL = 0x00; // Clear counter low
 
@@ -40,20 +43,13 @@ void init_timer() {
   T1CTL = 0x0e;  // TickFreq/128, modulo
 }
 
-void reset_timer() {
-  timerCounter = 0;
-}
-
 void t1_isr(void) __interrupt T1_VECTOR
 {
-  // if (timerCounter % 1000 == 0) {
-  //   BLUE_LED_PIN = !BLUE_LED_PIN;
-  // }
-  timerCounter++;
+  __timerCounter++;
 }
 
 void delay(uint32_t msec) {
   uint32_t start_time;
-  start_time = timerCounter;
-  while(timerCounter - start_time < msec);
+  read_timer(&start_time);
+  while(!check_elapsed(start_time, msec));
 }
