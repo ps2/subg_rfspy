@@ -1,5 +1,7 @@
 # subg_rfspy
 
+[![Build Status](https://travis-ci.org/ps2/subg_rfspy.svg?branch=master)](https://travis-ci.org/ps2/subg_rfspy)
+
 ## Pre-Requisites for Building subg_rfspy
 
 [sdcc] (http://sdcc.sourceforge.net/) package is required for this build.
