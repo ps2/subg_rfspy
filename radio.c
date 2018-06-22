@@ -7,6 +7,7 @@
 #include "timer.h"
 #include "encoding.h"
 #include "fifo.h"
+#include "statistics.h"
 #include "radio.h"
 
 #define RX_FIFO_SIZE 32
@@ -23,13 +24,7 @@ static volatile uint8_t __xdata radio_tx_buf_len;
 static volatile uint16_t __xdata preamble_word;
 static volatile uint8_t stop_custom_preamble_semaphore;
 
-// Error stats
-volatile uint16_t __xdata rx_overflow;
-volatile uint16_t __xdata tx_underflow;
-volatile uint16_t __xdata packet_count;
-
 // TX States
-
 enum TxState {
   TxStatePreambleByte0 = 0x00,
   TxStatePreambleByte1 = 0x01,
@@ -117,7 +112,7 @@ bool set_encoding_type(EncodingType new_type) {
 
 inline void put_rx(uint8_t data) {
   if (!fifo_put(&rx_fifo, data)) {
-    rx_overflow++;
+    radio_rx_fifo_overflow_count++;
   }
 }
 
@@ -127,8 +122,7 @@ void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
     d_byte = RFD;
     if (rx_len == 0) {
       put_rx(RSSI);
-      put_rx(packet_count);
-      packet_count++;
+      put_rx(packet_rx_count & 0xff);
       rx_len = 2;
     }
     put_rx(d_byte);
@@ -163,7 +157,6 @@ void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
       }
       break;
     case TxStateDone:
-      tx_underflow++;
       // Letting RFD go empty will make the radio stop TX mode.
       //RFD = 0;
       break;
@@ -184,6 +177,7 @@ void rf_isr(void) __interrupt RF_VECTOR {
   }
   else if(RFIF & 0x40) // RX overflow
   {
+    radio_rx_overflow_count++;
     RFIF &= ~0x40; // Clear module interrupt flag
   }
   else if(RFIF & 0x20) // RX timeout
@@ -242,6 +236,7 @@ void send_from_tx_buf(uint8_t channel, uint16_t preamble_extend_ms) {
   pktlen_save = PKTLEN;
   pktctrl0_save = PKTCTRL0;
 
+  packet_tx_count++;
 
   if (preamble_word != 0) {
     // save and turn off preamble/sync registers
@@ -378,6 +373,10 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
 
   while(!fifo_empty(&rx_fifo)) {
     fifo_get(&rx_fifo);
+  }
+
+  if (rval == 0) {
+    packet_rx_count++;
   }
 
   led_set_diagnostic(BlueLED, LEDStateOff);
