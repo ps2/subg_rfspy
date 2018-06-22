@@ -17,7 +17,7 @@ extra_modules = mock_hardware.rel
 include common.mk
 
 output/${TARGET_BUILD}:
-	mkdir output/${TARGET_BUILD}
+	mkdir -p output/${TARGET_BUILD}
 
 output/${TARGET_BUILD}/check_subg_rfspy: $(common_modules) $(extra_modules) $(REL) serial.rel
 	cd output/${TARGET_BUILD} && $(CC) $(LDFLAGS) $(CFLAGS) $(common_modules) $(extra_modules) $(REL) serial.rel -o check_subg_rfspy
