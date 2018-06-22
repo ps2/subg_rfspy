@@ -4,10 +4,10 @@
 #include <pthread.h>
 #include <assert.h>
 #include <stdbool.h>
+#include "hardware.h"
 #include "subg_rfspy.h"
 #include "serial.h"
 #include "commands.h"
-#include "hardware.h"
 #include "version.h"
 
 #define RESPONSE_BUFFER_SIZE 128
