@@ -65,7 +65,7 @@ void do_spi(const uint8_t *input, uint8_t *output, uint8_t len)
       output[i] = slave_byte;
     }
     rx1_isr();
-    //tiny_sleep();
+    tiny_sleep();
   }
 
   if (output) {
