@@ -216,18 +216,18 @@ void cmd_reset_radio_config() {
 void cmd_get_statistics()
 {
   uint32_t uptime_ms;
+
+  serial_tx_byte(RESPONSE_CODE_SUCCESS);
   read_timer(&uptime_ms);
   serial_tx_long(uptime_ms);
   serial_tx_word(radio_rx_overflow_count);
   serial_tx_word(radio_rx_fifo_overflow_count);
-  serial_tx_word(packet_tx_count);
   serial_tx_word(packet_rx_count);
+  serial_tx_word(packet_tx_count);
   serial_tx_word(crc_failure_count);
   serial_tx_word(spi_sync_failure_count);
   serial_tx_word(0); // Placeholder
   serial_tx_word(0); // Placeholder
-
-  serial_tx_byte(RESPONSE_CODE_SUCCESS);
   serial_flush();
 }
 
