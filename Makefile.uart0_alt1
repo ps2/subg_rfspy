@@ -1,7 +1,0 @@
-SERIAL_TYPE := uart0_alt1
-SERIAL_PARAMS :=
-
-BOARD_TYPE := RILEYLINK
-BOARD_PARAMS :=
-
-include common.mk
