@@ -216,7 +216,7 @@ void check_interrupting_command()
 
   // Expected response: command successful
   assert(!response.timed_out);
-  assert(equal(RESPONSE_CODE_SUCCESS+1, response.response_code, "response.response_code"));
+  assert(equal(RESPONSE_CODE_SUCCESS, response.response_code, "response.response_code"));
 }
 
 
