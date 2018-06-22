@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <assert.h>
+#include <stdbool.h>
 #include "subg_rfspy.h"
 #include "serial.h"
 #include "commands.h"
@@ -118,6 +119,14 @@ CommandResponse run_command(uint8_t len, const uint8_t *data, int max_xfer_cycle
   return wait_for_response(max_xfer_cycles);
 }
 
+bool equal(int expected, int actual, const char *desc)
+{
+  if (expected != actual) {
+    fprintf(stderr, "Expected %s to equal %d, but was %d instead.\n", desc, expected, actual);
+  }
+  return expected == actual;
+}
+
 void check_version()
 {
   uint8_t cmd = CmdGetVersion;
@@ -168,7 +177,7 @@ void check_sync_error_dropped_byte()
   tmp[0] = CmdGetVersion;
   response = run_command(1, tmp, 20);
   assert(!response.timed_out);
-  assert(response.response_length == 1);
+  assert(equal(1, response.response_length, "response.response_length"));
 
   // Recovery
   tmp[0] = CmdGetVersion;
@@ -182,7 +191,7 @@ void check_interrupting_command()
   CommandResponse response;
   uint8_t tmp[6];
 
-  // Send a listening command
+  // Send a listening command (4s timeout)
   tmp[0] = CmdGetPacket;
   tmp[1] = 1; // channel
   tmp[2] = 1; // timeout(4)
@@ -201,13 +210,13 @@ void check_interrupting_command()
 
   // Expected response: command interrupted
   assert(!response.timed_out);
-  assert(response.response_code == RESPONSE_CODE_CMD_INTERRUPTED);
+  assert(equal(RESPONSE_CODE_CMD_INTERRUPTED, response.response_code, "response.response_code"));
 
   response = wait_for_response(20);
 
   // Expected response: command successful
   assert(!response.timed_out);
-  assert(response.response_code == RESPONSE_CODE_SUCCESS);
+  assert(equal(RESPONSE_CODE_SUCCESS, response.response_code, "response.response_code"));
 }
 
 
