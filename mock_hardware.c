@@ -2,7 +2,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <time.h>
 #include "hardware.h"
+
 
 volatile uint8_t P0_0;
 volatile uint8_t P0_1;
@@ -79,21 +81,32 @@ volatile uint8_t U1DBUF_read;
 
 bool mock_hardware_should_exit;
 
+// This is 10x normal clock speed
+#define MOCK_CLOCK_TICK_RATE 0.0001
+
 void *run_mock_hardware(void *vargp) {
+  clock_t start_time;
 
   // Mark oscillator as powered up and stable
   SLEEP |= SLEEP_XOSC_S;
 
   printf("starting mock hardware thread\n");
 
+  start_time = clock();
+
   while(!mock_hardware_should_exit) {
-    // Run counter
-    if (T1CNTL == 255) {
-      T1CNTH += 1;
+
+    double elapsed = ((double)(clock() - start_time))/CLOCKS_PER_SEC;
+
+    if (elapsed > MOCK_CLOCK_TICK_RATE) {
+      // Run counter
+      if (T1CNTL == 255) {
+        T1CNTH += 1;
+      }
+      T1CNTL += 1;
+      t1_isr();
+      start_time = clock();
     }
-    T1CNTL += 1;
-    t1_isr();
-    //printf("SLEEP = %d\n", SLEEP);
 
     // Watch radio strobe registers
     if(RFST == RFST_SIDLE) {
