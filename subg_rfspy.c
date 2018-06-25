@@ -40,6 +40,9 @@ void subg_rfspy_main() {
 
   subg_rfspy_init_finished = true;
 
+  // Start watchdog at 1s interval
+  WDCTL = WDCTL_EN;
+
   while(!subg_rfspy_should_exit) {
     get_command();
   }

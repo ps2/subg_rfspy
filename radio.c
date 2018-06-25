@@ -321,6 +321,9 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
   while(MARCSTATE!=MARC_STATE_RX);
 
   while(1) {
+
+    feed_watchdog();
+    
     // Waiting for isr to put radio bytes into rx_fifo
     if (!fifo_empty(&rx_fifo)) {
 
