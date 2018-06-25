@@ -16,7 +16,7 @@ void init_timer() {
   uint16_t timer_ticks_per_ms = (SYSTEM_CLOCK_MHZ * 1000) / 128 / 2;
 
   __timerCounter = 0;
-  
+
   T1CTL = 0x00; // disable timer
   T1CNTL = 0x00; // Clear counter low
 
@@ -51,5 +51,7 @@ void t1_isr(void) __interrupt T1_VECTOR
 void delay(uint32_t msec) {
   uint32_t start_time;
   read_timer(&start_time);
-  while(!check_elapsed(start_time, msec));
+  while(!check_elapsed(start_time, msec)) {
+    feed_watchdog();
+  }
 }

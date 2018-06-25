@@ -220,6 +220,7 @@ void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint16_t del
     if (send_count > 0 && delay_ms > 0) {
       delay(delay_ms);
     }
+    feed_watchdog();
 
     send_from_tx_buf(channel, preamble_extend_ms);
 
@@ -323,7 +324,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
   while(1) {
 
     feed_watchdog();
-    
+
     // Waiting for isr to put radio bytes into rx_fifo
     if (!fifo_empty(&rx_fifo)) {
 
