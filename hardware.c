@@ -10,8 +10,8 @@
 static LEDMode green_mode = 0;
 static LEDMode blue_mode = 0;
 
-mode_registers tx_registers;
-mode_registers rx_registers;
+mode_registers __xdata tx_registers;
+mode_registers __xdata rx_registers;
 
 void init_leds() {
 	// init LEDS

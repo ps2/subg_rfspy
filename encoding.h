@@ -48,8 +48,7 @@ typedef struct {
 typedef struct {
   // Adds a byte for decoding. The return value will be 1 if the byte
   // contains encoding errors, otherwise it will be 0.
-  uint8_t (*add_encoded_byte)(DecoderState *state, uint8_t encoded)
-   __reentrant;
+  uint8_t (*add_encoded_byte)(DecoderState *state, uint8_t encoded) __reentrant;
   // decoded will be set to the next available decoded byte.
   // Return value is 0 if no more bytes are available.
   uint8_t (*next_decoded_byte)(DecoderState *state, uint8_t *decoded) __reentrant;

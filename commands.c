@@ -7,6 +7,8 @@
 #include "commands.h"
 #include "encoding.h"
 #include "version.h"
+#include "statistics.h"
+#include "timer.h"
 
 uint8_t interrupting_cmd = 0;
 
@@ -211,7 +213,26 @@ void cmd_reset_radio_config() {
   serial_flush();
 }
 
-CommandHandler handlers[] = {
+void cmd_get_statistics()
+{
+  uint32_t uptime_ms;
+
+  serial_tx_byte(RESPONSE_CODE_SUCCESS);
+  read_timer(&uptime_ms);
+  serial_tx_long(uptime_ms);
+  serial_tx_word(radio_rx_overflow_count);
+  serial_tx_word(radio_rx_fifo_overflow_count);
+  serial_tx_word(packet_rx_count);
+  serial_tx_word(packet_tx_count);
+  serial_tx_word(crc_failure_count);
+  serial_tx_word(spi_sync_failure_count);
+  serial_tx_word(0); // Placeholder
+  serial_tx_word(0); // Placeholder
+  serial_flush();
+}
+
+
+CommandHandler __xdata handlers[] = {
   /* 0  */ 0,
   /* 1  */ cmd_get_state,
   /* 2  */ cmd_get_version,
@@ -225,7 +246,8 @@ CommandHandler handlers[] = {
   /* 10 */ cmd_set_mode_registers,
   /* 11 */ cmd_set_sw_encoding,
   /* 12 */ cmd_set_preamble,
-  /* 13 */ cmd_reset_radio_config
+  /* 13 */ cmd_reset_radio_config,
+  /* 14 */ cmd_get_statistics
 };
 
 void do_cmd(uint8_t cmd) {

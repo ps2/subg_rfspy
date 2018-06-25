@@ -5,6 +5,7 @@
 #include "subg_rfspy.h"
 #include "serial.h"
 #include "radio.h"
+#include "statistics.h"
 #include "fifo.h"
 
 #define SPI_BUF_LEN 128
@@ -110,6 +111,7 @@ void rx1_isr(void) __interrupt URX1_VECTOR
       break;
     case SPI_MODE_IDLE:
       if (value != 0x99) {
+        spi_sync_failure_count++;
         spi_mode = SPI_MODE_OUT_OF_SYNC;
       } else {
         spi_mode = SPI_MODE_SIZE;
@@ -117,6 +119,7 @@ void rx1_isr(void) __interrupt URX1_VECTOR
       break;
     case SPI_MODE_SIZE:
       if (value > SPI_BUF_LEN) {
+        spi_sync_failure_count++;
         spi_mode = SPI_MODE_OUT_OF_SYNC;
         return;
       }
@@ -176,7 +179,6 @@ uint8_t serial_rx_avail()
 
 uint8_t serial_rx_byte()
 {
-  time_t last_time;
   uint8_t s_data;
   if (!serial_data_available) {
     while(!serial_data_available && !subg_rfspy_should_exit);
@@ -201,6 +203,20 @@ uint32_t serial_rx_long()
 void serial_tx_byte(uint8_t tx_byte)
 {
   fifo_put(&output_buffer, tx_byte);
+}
+
+void serial_tx_word(uint16_t tx_word)
+{
+  fifo_put(&output_buffer, tx_word >> 8);
+  fifo_put(&output_buffer, tx_word & 0xff);
+}
+
+void serial_tx_long(uint32_t tx_long)
+{
+  fifo_put(&output_buffer, tx_long >> 24);
+  fifo_put(&output_buffer, (tx_long >> 16) & 0xff);
+  fifo_put(&output_buffer, (tx_long >> 8) & 0xff);
+  fifo_put(&output_buffer, tx_long & 0xff);
 }
 
 void serial_flush()
