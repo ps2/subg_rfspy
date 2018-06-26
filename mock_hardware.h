@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __GNUC__
+#define inline static inline
+#endif
+
 #define __reentrant
 #define __xdata
 #define __interrupt

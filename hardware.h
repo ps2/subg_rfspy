@@ -107,4 +107,12 @@ void mode_registers_enact(mode_registers const *mode);
 extern mode_registers __xdata tx_registers;
 extern mode_registers __xdata rx_registers;
 
+#define WDCLP1     0xA0  // Clear pattern 1
+#define WDCLP2     0x50  // Clear pattern 2
+
+inline void feed_watchdog() {
+	WDCTL = WDCLP1 | WDCTL_EN;
+	WDCTL = WDCLP2 | WDCTL_EN;
+}
+
 #endif

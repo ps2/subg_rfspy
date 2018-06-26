@@ -7,8 +7,10 @@
 #include "radio.h"
 #include "statistics.h"
 #include "fifo.h"
+#include "timer.h"
 
 #define SPI_BUF_LEN 128
+#define FLUSH_TIMEOUT_MS 5000
 
 static fifo_buffer __xdata input_buffer;
 static volatile uint8_t __xdata input_buffer_mem[SPI_BUF_LEN];
@@ -181,7 +183,9 @@ uint8_t serial_rx_byte()
 {
   uint8_t s_data;
   if (!serial_data_available) {
-    while(!serial_data_available && !subg_rfspy_should_exit);
+    while(!serial_data_available && !subg_rfspy_should_exit) {
+      feed_watchdog();
+    }
   }
   s_data = fifo_get(&input_buffer);
   if (fifo_empty(&input_buffer)) {
@@ -221,12 +225,29 @@ void serial_tx_long(uint32_t tx_long)
 
 void serial_flush()
 {
+  uint32_t start_time;
+
   if (fifo_empty(&output_buffer)) {
     return;
   }
+
+  // Waiting for tx isr to ask for data
+  read_timer(&start_time);
   ready_to_send = 1;
-  while(!fifo_empty(&output_buffer) && !subg_rfspy_should_exit);
-  while(slave_send_size != 0 && !subg_rfspy_should_exit);
+  while(!fifo_empty(&output_buffer) && !subg_rfspy_should_exit) {
+    feed_watchdog();
+    if (check_elapsed(start_time, FLUSH_TIMEOUT_MS)) {
+      break;
+    }
+  }
+
+  // Waiting to finish spi transfer
+  while(slave_send_size != 0 && !subg_rfspy_should_exit) {
+    feed_watchdog();
+    if (check_elapsed(start_time, FLUSH_TIMEOUT_MS)) {
+      break;
+    }
+  }
   ready_to_send = 0;
 }
 

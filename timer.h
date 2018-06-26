@@ -4,11 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#ifdef __GNUC__
-#define inline static inline
-#endif
-
-
 volatile extern uint32_t __timerCounter;
 
 void init_timer();
