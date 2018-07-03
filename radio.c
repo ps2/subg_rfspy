@@ -1,19 +1,43 @@
 
 #include <stdint.h>
+#include <string.h>
 #include "hardware.h"
 #include "serial.h"
 #include "commands.h"
-#include "delay.h"
 #include "timer.h"
+#include "encoding.h"
+#include "fifo.h"
+#include "statistics.h"
+#include "radio.h"
 
-#define MAX_PACKET_LEN 192
-volatile uint8_t __xdata radio_tx_buf[MAX_PACKET_LEN];
-volatile uint8_t radio_tx_buf_len = 0;
-volatile uint8_t radio_tx_buf_idx = 0;
-volatile uint8_t __xdata radio_rx_buf[MAX_PACKET_LEN];
-volatile uint8_t radio_rx_buf_len = 0;
-volatile uint8_t packet_count = 1;
-volatile uint8_t underflow_count = 0;
+#define RX_FIFO_SIZE 32
+#define TX_BUF_SIZE 255
+
+static volatile uint8_t __xdata radio_rx_buf[RX_FIFO_SIZE];
+static fifo_buffer __xdata rx_fifo;
+static volatile uint8_t rx_len;
+
+static volatile uint8_t __xdata radio_tx_buf[TX_BUF_SIZE];
+static volatile uint8_t __xdata radio_tx_buf_read_idx;
+static volatile uint8_t __xdata radio_tx_buf_len;
+
+static volatile uint16_t __xdata preamble_word;
+static volatile uint8_t stop_custom_preamble_semaphore;
+
+// TX States
+enum TxState {
+  TxStatePreambleByte0 = 0x00,
+  TxStatePreambleByte1 = 0x01,
+  TxStatePreambleDefault = 0x02,
+  TxStateSync0 = 0x03,
+  TxStateSync1 = 0x04,
+  TxStateData = 0x05,
+  TxStateDone = 0x06,
+};
+volatile enum TxState tx_state;
+
+
+EncodingType encoding_type = EncodingTypeNone;
 
 void configure_radio()
 {
@@ -39,7 +63,8 @@ void configure_radio()
   MCSM2     = 0x07;
   MCSM1     = 0x30;
   MCSM0     = 0x18; // main radio control state machine configuration
-  FOCCFG    = 0x17; // frequency offset compensation configuration BSCFG     = 0x6C;
+  FOCCFG    = 0x17; // frequency offset compensation configuration
+  BSCFG     = 0x6C; // bit synchronization configuration
   FREND1    = 0xB6; // front end tx configuration
   FREND0    = 0x11; // front end tx configuration
   FSCAL3    = 0xE9; // frequency synthesizer calibration
@@ -71,48 +96,74 @@ void configure_radio()
 
   IEN2 |= IEN2_RFIE;
   RFTXRXIE = 1;
+
+  fifo_init(&rx_fifo, radio_rx_buf, RX_FIFO_SIZE);
+}
+
+// Set software based encoding
+bool set_encoding_type(EncodingType new_type) {
+  if (new_type <= MaxEncodingTypeValue) {
+    encoding_type = new_type;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+inline void put_rx(uint8_t data) {
+  if (!fifo_put(&rx_fifo, data)) {
+    radio_rx_fifo_overflow_count++;
+  }
 }
 
 void rftxrx_isr(void) __interrupt RFTXRX_VECTOR {
   uint8_t d_byte;
   if (MARCSTATE==MARC_STATE_RX) {
     d_byte = RFD;
-    if (radio_rx_buf_len == 0) {
-      radio_rx_buf[0] = RSSI; 
-      if (radio_rx_buf[0] == 0) {
-        radio_rx_buf[0] = 1; // Prevent RSSI of 0 from triggering end-of-packet
-      }
-      radio_rx_buf[1] = packet_count; 
-      packet_count++;
-      radio_rx_buf_len = 2;
+    if (rx_len == 0) {
+      put_rx(RSSI);
+      put_rx(packet_rx_count & 0xff);
+      rx_len = 2;
     }
-    if (packet_count == 0) {
-      packet_count = 1;
-    }
-    if (radio_rx_buf_len < MAX_PACKET_LEN) {
-      radio_rx_buf[radio_rx_buf_len] = d_byte;
-      radio_rx_buf_len++;
-    } else {
-      // Overflow
-    }
-    if (d_byte == 0) {
-      RFST = RFST_SIDLE;
-      while(MARCSTATE!=MARC_STATE_IDLE);
-    }
+    put_rx(d_byte);
+    rx_len++;
   }
   else if (MARCSTATE==MARC_STATE_TX) {
-    if (radio_tx_buf_len > radio_tx_buf_idx) {
-      d_byte = radio_tx_buf[radio_tx_buf_idx++];
-      RFD = d_byte;
-    } else {
-      RFD = 0;
-      underflow_count++;
-      // We wait a few counts to make sure the radio has sent the last bytes
-      // before turning it off.
-      if (underflow_count == 2) {
-        RFST = RFST_SIDLE;
+    switch (tx_state) {
+    case TxStatePreambleByte0:
+      RFD = preamble_word >> 8;
+      tx_state = TxStatePreambleByte1;
+      break;
+    case TxStatePreambleByte1:
+      RFD = preamble_word & 0xff;
+      if (stop_custom_preamble_semaphore) {
+        tx_state = TxStateSync1;
+      } else {
+        tx_state = TxStatePreambleByte0;
       }
+      break;
+    case TxStateSync1:
+      RFD = SYNC1;
+      tx_state = TxStateSync0;
+      break;
+    case TxStateSync0:
+      RFD = SYNC0;
+      tx_state = TxStateData;
+      break;
+    case TxStateData:
+      RFD = radio_tx_buf[radio_tx_buf_read_idx++];
+      if (radio_tx_buf_read_idx >= radio_tx_buf_len) {
+        tx_state = TxStateDone;
+      }
+      break;
+    case TxStateDone:
+      // Letting RFD go empty will make the radio stop TX mode.
+      //RFD = 0;
+      break;
+    case TxStatePreambleDefault:
+      break;
     }
+
   }
 }
 
@@ -126,6 +177,7 @@ void rf_isr(void) __interrupt RF_VECTOR {
   }
   else if(RFIF & 0x40) // RX overflow
   {
+    radio_rx_overflow_count++;
     RFIF &= ~0x40; // Clear module interrupt flag
   }
   else if(RFIF & 0x20) // RX timeout
@@ -136,133 +188,206 @@ void rf_isr(void) __interrupt RF_VECTOR {
 
 }
 
-void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint8_t delay_ms) {
+void send_packet_from_serial(uint8_t channel, uint8_t repeat_count, uint16_t delay_ms, uint16_t preamble_extend_ms, uint8_t len) {
   uint8_t s_byte;
-  
-  radio_tx_buf_len = 0;
-  radio_tx_buf_idx = 0;
-  underflow_count = 0;
+  uint16_t send_count = 0;
+  uint16_t total_send_count = repeat_count + 1;
 
-  RFST = RFST_SIDLE;
-  while(MARCSTATE!=MARC_STATE_IDLE);
+  Encoder encoder;
+  EncoderState encoder_state;
+
+  init_encoder(encoding_type, &encoder, &encoder_state);
+
+  mode_registers_enact(&tx_registers);
 
   CHANNR = channel;
-  //led_set_state(1,1);
 
-  while (1) {
+  radio_tx_buf_len = 0;
+  while (len > 0) {
     s_byte = serial_rx_byte();
-    if (radio_tx_buf_len == (MAX_PACKET_LEN - 1)) {
-      s_byte = 0;
-    }
-    radio_tx_buf[radio_tx_buf_len++] = s_byte;
-    if (s_byte == 0) {
-      break;
-    }
-
-    if (radio_tx_buf_len == 2) { 
-      // Turn on radio
-      RFST = RFST_STX;
+    len--;
+    encoder.add_raw_byte(&encoder_state, s_byte);
+    while (encoder.next_encoded_byte(&encoder_state, &s_byte, len == 0)) {
+      if (radio_tx_buf_len+1 < TX_BUF_SIZE) {
+        radio_tx_buf[radio_tx_buf_len++] = s_byte;
+      }
     }
   }
 
-  // wait for sending to finish
-  while(MARCSTATE!=MARC_STATE_IDLE);
+  while(send_count < total_send_count) {
 
-  while(repeat_count > 0) {
-    // Reset idx to beginning of buffer
-    radio_tx_buf_idx = 0;
-    underflow_count = 0;
-
-    // delay 
-    if (delay_ms > 0) {
+    // delay
+    if (send_count > 0 && delay_ms > 0) {
       delay(delay_ms);
     }
-    
-    // Turn on radio (interrupts should start again)
-    RFST = RFST_STX;
-    while(MARCSTATE!=MARC_STATE_TX);
+    feed_watchdog();
 
-    // wait for sending to finish
-    while(MARCSTATE!=MARC_STATE_IDLE);
-    repeat_count--;
+    send_from_tx_buf(channel, preamble_extend_ms);
+
+    send_count++;
   }
-  //led_set_state(1,0);
 }
 
-void resend_from_tx_buf(uint8_t channel) {
+void send_from_tx_buf(uint8_t channel, uint16_t preamble_extend_ms) {
+  uint8_t pktlen_save;
+  uint8_t mdmcfg2_save;
+  uint8_t pktctrl0_save;
+
+  mdmcfg2_save = MDMCFG2;
+  pktlen_save = PKTLEN;
+  pktctrl0_save = PKTCTRL0;
+
+  packet_tx_count++;
+
+  if (preamble_word != 0) {
+    // save and turn off preamble/sync registers
+    MDMCFG2 &= 0b11111100;  // Disable PREAMBLE/SYNC
+    PKTCTRL0 = (PKTCTRL0 & ~0b11) | 0b10; // Enter "infinite" tx mode
+    PKTLEN = 0;
+    stop_custom_preamble_semaphore = 0;
+    tx_state = TxStatePreambleByte0;
+  } else {
+    if (preamble_extend_ms) {
+      tx_state = TxStatePreambleDefault;
+    } else {
+      tx_state = TxStateData;
+    }
+    PKTLEN = radio_tx_buf_len;
+  }
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
 
   CHANNR = channel;
 
-  // Reset idx to beginning of buffer
-  radio_tx_buf_idx = 0;
-  underflow_count = 0;
+  radio_tx_buf_read_idx = 0;
 
-  // Turn on radio (interrupts should start again)
+  // Turn on radio (interrupts will start again)
   RFST = RFST_STX;
   while(MARCSTATE!=MARC_STATE_TX);
 
+  if (preamble_extend_ms > 0) {
+    delay(preamble_extend_ms);
+    if(preamble_word==0) {
+      tx_state = TxStateData;
+      TCON |= 0b10;  // Manually trigger RFTXRX vector.
+    }
+  }
+
+  if (preamble_word != 0) {
+    stop_custom_preamble_semaphore = 1;
+  }
+
   // wait for sending to finish
-  while(MARCSTATE!=MARC_STATE_IDLE);
+  while(MARCSTATE==MARC_STATE_TX);
+
+  if (MARCSTATE==MARC_STATE_TX_UNDERFLOW) {
+    RFST = RFST_SIDLE;
+  }
+
+  PKTLEN = pktlen_save;
+  MDMCFG2 = mdmcfg2_save;
+  PKTCTRL0 = pktctrl0_save;
+
 }
 
-uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms) {
+uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uint8_t use_pktlen) {
 
   uint8_t read_idx = 0;
   uint8_t d_byte = 0;
   uint8_t rval = 0;
+  uint8_t encoding_error = 0;
+  uint32_t timer_start;
 
-  reset_timer();
+  Decoder __xdata decoder;
+  DecoderState __xdata decoder_state;
+
+  if (timeout_ms > 0) {
+    read_timer(&timer_start);
+  }
+
+  mode_registers_enact(&rx_registers);
+
+  init_decoder(encoding_type, &decoder, &decoder_state);
 
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
 
   CHANNR = channel;
 
-  radio_rx_buf_len = 0;
+  rx_len = 0;
+  memset((void*)radio_rx_buf, 0x11, RX_FIFO_SIZE);
 
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
 
   while(1) {
-    // Waiting for isr to put radio bytes into radio_rx_buf
-    if (radio_rx_buf_len > read_idx) {
-      //led_set_state(0,1);
 
-      if (read_idx == 0 && radio_rx_buf_len > 2 && radio_rx_buf[2] == 0) {
-        rval = ERROR_ZERO_DATA;
+    feed_watchdog();
+
+    // Waiting for isr to put radio bytes into rx_fifo
+    if (!fifo_empty(&rx_fifo)) {
+
+      d_byte = fifo_get(&rx_fifo);
+      read_idx++;
+
+      // Send status code
+      if (read_idx == 1) {
+        led_set_diagnostic(BlueLED, LEDStateOn);
+        serial_tx_byte(RESPONSE_CODE_SUCCESS);
+      }
+      // First two bytes are rssi and packet #
+      if (read_idx < 3) {
+        serial_tx_byte(d_byte);
+      } else {
+        encoding_error = decoder.add_encoded_byte(&decoder_state, d_byte);
+
+        while (decoder.next_decoded_byte(&decoder_state, &d_byte)) {
+          serial_tx_byte(d_byte);
+        }
+      }
+
+      if (encoding_error) {
         break;
       }
-      d_byte = radio_rx_buf[read_idx];
-      serial_tx_byte(d_byte);
-      read_idx++;
-      if (read_idx > 1 && read_idx == radio_rx_buf_len && d_byte == 0) {
-        // End of packet.
+
+      // Check for end of packet
+      if (use_pktlen && read_idx == PKTLEN) {
         break;
       }
     }
 
-    if (timeout_ms > 0 && timerCounter > timeout_ms && radio_rx_buf_len == 0) {
-      rval = ERROR_RX_TIMEOUT;
+    if (timeout_ms > 0 && check_elapsed(timer_start, timeout_ms)) {
+      rval = RESPONSE_CODE_RX_TIMEOUT;
       break;
     }
-  
-    #ifndef TI_DONGLE
-    #else
-    #endif
+
     // Also going to watch serial in case the client wants to interrupt rx
     if (SERIAL_DATA_AVAILABLE) {
       // Received a byte from uart while waiting for radio packet
       // We will interrupt the RX and go handle the command.
       interrupting_cmd = serial_rx_byte();
-      rval = ERROR_CMD_INTERRUPTED;
+      rval = RESPONSE_CODE_CMD_INTERRUPTED;
       break;
     }
   }
+
   RFST = RFST_SIDLE;
-  //led_set_state(0,0);
+  while(MARCSTATE!=MARC_STATE_IDLE);
+
+  while(!fifo_empty(&rx_fifo)) {
+    fifo_get(&rx_fifo);
+  }
+
+  if (rval == 0) {
+    packet_rx_count++;
+  }
+
+  led_set_diagnostic(BlueLED, LEDStateOff);
   return rval;
 }
 
+// Set software based preamble, 0 = disable
+void radio_set_preamble(uint16_t p) {
+  preamble_word = p;
+}

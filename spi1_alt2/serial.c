@@ -1,42 +1,45 @@
 
 #include <stdint.h>
+#include <time.h>
 #include "hardware.h"
+#include "subg_rfspy.h"
 #include "serial.h"
 #include "radio.h"
+#include "statistics.h"
+#include "fifo.h"
+#include "timer.h"
 
-#define SPI_BUF_LEN 220 
+#define SPI_BUF_LEN 128
+#define FLUSH_TIMEOUT_MS 5000
 
-volatile uint8_t __xdata spi_input_buf[SPI_BUF_LEN];
-volatile uint8_t input_size = 0;
-volatile uint8_t input_head_idx = 0;
-volatile uint8_t input_tail_idx = 0;
+static fifo_buffer __xdata input_buffer;
+static volatile uint8_t __xdata input_buffer_mem[SPI_BUF_LEN];
 
-volatile uint8_t __xdata spi_output_buf[SPI_BUF_LEN];
-volatile uint8_t output_size = 0;
-volatile uint8_t output_head_idx = 0;
-volatile uint8_t output_tail_idx = 0;
+static fifo_buffer __xdata output_buffer;
+static volatile uint8_t __xdata output_buffer_mem[SPI_BUF_LEN];
 
 volatile uint8_t ready_to_send = 0;
 
 volatile uint8_t serial_data_available;
 
-#define SPI_MODE_WAIT 0
+#define SPI_MODE_IDLE 0
 #define SPI_MODE_SIZE 1
 #define SPI_MODE_XFER 2
+#define SPI_MODE_OUT_OF_SYNC 3
 volatile uint8_t spi_mode;
 
 volatile uint8_t master_send_size = 0;
 volatile uint8_t slave_send_size = 0;
+volatile uint8_t xfer_size = 0;
 
 
 /***************************************************************************
- * 
- * SPI encoding: 
+ *
+ * SPI encoding:
  *
  * Master sends a 0x99 byte, followed by number of bytes that will be sent.
- * Before second byte xfer, slave loads up buffer with number of bytes
- * available. 
- * 
+ * Slave sends back number of bytes available during second xfer.
+ *
  */
 
 
@@ -88,116 +91,164 @@ void configure_serial()
 
   IRCON2 &= ~BIT2; // Clear UTX1IF
   IEN2 |= BIT3;    // Enable UTX1IE interrupt
+
+  U1DBUF_write = 0x44;
+
+  // Initialize fifos
+  fifo_init(&input_buffer, input_buffer_mem, SPI_BUF_LEN);
+  fifo_init(&output_buffer, output_buffer_mem, SPI_BUF_LEN);
 }
 
-void rx1_isr(void) __interrupt URX1_VECTOR {
+void rx1_isr(void) __interrupt URX1_VECTOR
+{
   uint8_t value;
-  value = U1DBUF;
+  value = U1DBUF_read;
 
-  if (spi_mode == SPI_MODE_WAIT && value == 0x99) {
-    if (ready_to_send) {
-      slave_send_size = output_size;
-      ready_to_send = 0;
-    } else {
-      slave_send_size = 0;
-    }
-    spi_mode = SPI_MODE_SIZE;
-    U1DBUF = slave_send_size;
-    return;
-  }
-
-  if (spi_mode == SPI_MODE_SIZE) {
-    master_send_size = value;
-    if (master_send_size > 0 || slave_send_size > 0) {
-      spi_mode = SPI_MODE_XFER;
-    } else {
-      spi_mode = SPI_MODE_WAIT;
-    }
-    return;
-  }
-
-  if (spi_mode == SPI_MODE_XFER && input_size < master_send_size) {
-    if (input_size < SPI_BUF_LEN) {
-      spi_input_buf[input_head_idx] = value;
-      input_head_idx++;
-      if (input_head_idx >= SPI_BUF_LEN) {
-        input_head_idx = 0;
+  switch(spi_mode)
+  {
+    case SPI_MODE_OUT_OF_SYNC:
+      if (value == 0x99) {
+        spi_mode = SPI_MODE_SIZE;
       }
-      input_size++;
-      if (input_size == master_send_size) {
-        master_send_size = 0;
-        serial_data_available = 1;
+      break;
+    case SPI_MODE_IDLE:
+      if (value != 0x99) {
+        spi_sync_failure_count++;
+        spi_mode = SPI_MODE_OUT_OF_SYNC;
+      } else {
+        spi_mode = SPI_MODE_SIZE;
       }
-    }
-    if (slave_send_size == 0 && master_send_size == 0) {
-      spi_mode = SPI_MODE_WAIT;
-    }
+      break;
+    case SPI_MODE_SIZE:
+      if (value > SPI_BUF_LEN) {
+        spi_sync_failure_count++;
+        spi_mode = SPI_MODE_OUT_OF_SYNC;
+        return;
+      }
+      master_send_size = value;
+      xfer_size = master_send_size;
+      if (slave_send_size > xfer_size) {
+        xfer_size = slave_send_size;
+      }
+      if (xfer_size > 0) {
+        spi_mode = SPI_MODE_XFER;
+      } else {
+        spi_mode = SPI_MODE_IDLE;
+      }
+      break;
+    case SPI_MODE_XFER:
+      if(xfer_size > 0) {
+        if (fifo_count(&input_buffer) < master_send_size) {
+          fifo_put(&input_buffer, value);
+          if (fifo_count(&input_buffer) == master_send_size) {
+            master_send_size = 0;
+            serial_data_available = 1;
+          }
+        }
+        xfer_size--;
+      }
+      if (xfer_size == 0) {
+        slave_send_size = 0;
+        spi_mode = SPI_MODE_IDLE;
+      }
+      break;
   }
 }
 
-void tx1_isr(void) __interrupt UTX1_VECTOR {
+void tx1_isr(void) __interrupt UTX1_VECTOR
+{
   IRCON2 &= ~BIT2; // Clear UTX1IF
-  if (spi_mode == SPI_MODE_SIZE || spi_mode == SPI_MODE_XFER) {
-    if (slave_send_size > 0 && output_size > 0) {
-      slave_send_size--;
-      if (slave_send_size == 0 && master_send_size == 0) {
-        spi_mode = SPI_MODE_WAIT;
-      }
-      U1DBUF = spi_output_buf[output_tail_idx];
-      output_size--;
-      output_tail_idx++;
-      if (output_tail_idx >= SPI_BUF_LEN) {
-        output_tail_idx = 0;
-      }
+  if (spi_mode == SPI_MODE_IDLE) {
+    if (ready_to_send) {
+      slave_send_size = fifo_count(&output_buffer);
+      U1DBUF_write = slave_send_size;
     } else {
-      U1DBUF = 0x99;
+      U1DBUF_write = 0;
     }
+  }
+  else if (slave_send_size > 0) {
+    U1DBUF_write = fifo_get(&output_buffer);
   } else {
-    U1DBUF = 0x99;
+    // Filler for when we are receiving data, but not sending anything
+    U1DBUF_write = 0x00;
   }
 }
 
-uint8_t serial_rx_byte() {
+uint8_t serial_rx_avail()
+{
+  return fifo_count(&input_buffer);
+}
+
+uint8_t serial_rx_byte()
+{
   uint8_t s_data;
-  while(!SERIAL_DATA_AVAILABLE);
-  s_data = spi_input_buf[input_tail_idx];
-  input_tail_idx++;
-  if (input_tail_idx >= SPI_BUF_LEN) {
-    input_tail_idx = 0;
+  if (!serial_data_available) {
+    while(!serial_data_available && !subg_rfspy_should_exit) {
+      feed_watchdog();
+    }
   }
-  input_size--;
-  if (input_size == 0) {
+  s_data = fifo_get(&input_buffer);
+  if (fifo_empty(&input_buffer)) {
     serial_data_available = 0;
   }
   return s_data;
-} 
+}
 
-uint16_t serial_rx_word() {
+uint16_t serial_rx_word()
+{
   return (serial_rx_byte() << 8) + serial_rx_byte();
 }
 
-uint32_t serial_rx_long() {
+uint32_t serial_rx_long()
+{
   return ((uint32_t)serial_rx_word() << 16) + serial_rx_word();
 }
 
-void serial_tx_byte(uint8_t tx_byte) {
-  if (output_size >= SPI_BUF_LEN) {
-    // drop oldest byte
-    output_size--;
-    output_tail_idx++;
-    if (output_tail_idx >= SPI_BUF_LEN) {
-      output_tail_idx = 0;
+void serial_tx_byte(uint8_t tx_byte)
+{
+  fifo_put(&output_buffer, tx_byte);
+}
+
+void serial_tx_word(uint16_t tx_word)
+{
+  fifo_put(&output_buffer, tx_word >> 8);
+  fifo_put(&output_buffer, tx_word & 0xff);
+}
+
+void serial_tx_long(uint32_t tx_long)
+{
+  fifo_put(&output_buffer, tx_long >> 24);
+  fifo_put(&output_buffer, (tx_long >> 16) & 0xff);
+  fifo_put(&output_buffer, (tx_long >> 8) & 0xff);
+  fifo_put(&output_buffer, tx_long & 0xff);
+}
+
+void serial_flush()
+{
+  uint32_t start_time;
+
+  if (fifo_empty(&output_buffer)) {
+    return;
+  }
+
+  // Waiting for tx isr to ask for data
+  read_timer(&start_time);
+  ready_to_send = 1;
+  while(!fifo_empty(&output_buffer) && !subg_rfspy_should_exit) {
+    feed_watchdog();
+    if (check_elapsed(start_time, FLUSH_TIMEOUT_MS)) {
+      break;
     }
   }
-  spi_output_buf[output_head_idx] = tx_byte;
-  if (tx_byte == 0) {
-    ready_to_send = 1;
+
+  // Waiting to finish spi transfer
+  while(slave_send_size != 0 && !subg_rfspy_should_exit) {
+    feed_watchdog();
+    if (check_elapsed(start_time, FLUSH_TIMEOUT_MS)) {
+      break;
+    }
   }
-  output_head_idx++;
-  if (output_head_idx >= SPI_BUF_LEN) {
-    output_head_idx = 0;
-  }
-  output_size++;
+  ready_to_send = 0;
 }
 
 void serial_tx_str(const char *str) {
@@ -205,7 +256,5 @@ void serial_tx_str(const char *str) {
     serial_tx_byte(*str);
     str++;
   }
-  serial_tx_byte(0);
+  serial_flush();
 }
-
-

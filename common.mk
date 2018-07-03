@@ -10,15 +10,19 @@ CODE_LOC_NAME := STDLOC
 
 TARGET_BUILD := ${SERIAL_TYPE}_${BOARD_TYPE}_${RADIO_LOCALE}_${CODE_LOC_NAME}
 
-CC=sdcc
+CC ?= sdcc
 
-LDFLAGS=--xram-loc 0xf000 --xram-size 0x1000 --code-loc ${CODE_LOC}
-CFLAGS=-I. -I${SERIAL_TYPE} --verbose ${RADIO_LOCALE_DEF} -D${BOARD_TYPE} ${BOARD_PARAMS} ${SERIAL_PARAMS}
+ifeq ($(CC),sdcc)
+	LDFLAGS+=--xram-loc 0xf000 --model-medium --xram-size 0x1000 --code-loc ${CODE_LOC} --code-size 0x8000
+  CFLAGS+=--model-medium --verbose
+endif
+
+CFLAGS+=-I. -I${SERIAL_TYPE} ${RADIO_LOCALE_DEF} -D${BOARD_TYPE} ${BOARD_PARAMS} ${SERIAL_PARAMS}
 
 default: output output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 
-common_modules = radio.rel main.rel timer.rel \
-	           commands.rel delay.rel hardware.rel
+common_modules = $(main_module) subg_rfspy.rel radio.rel timer.rel encoding.rel manchester.rel \
+	           fourbsixb.rel commands.rel hardware.rel packet_buffer.rel statistics.rel
 
 clean:
 	rm -rf output/${TARGET_BUILD}
@@ -32,14 +36,11 @@ serial.rel: ${SERIAL_TYPE}/serial.c
 	# ${REL}
 	$(CC) $(CFLAGS) -o output/${TARGET_BUILD}/$@ -c $< $(REL)
 
-output/${TARGET_BUILD}/${TARGET_BUILD}.hex: $(common_modules) $(REL) serial.rel
-	cd output/${TARGET_BUILD} && $(CC) $(LDFLAGS) $(CFLAGS) $(common_modules) $(REL) serial.rel  -o ${TARGET_BUILD}.hex
+output/${TARGET_BUILD}/${TARGET_BUILD}.hex: $(common_modules) $(extra_modules) $(REL) serial.rel
+	cd output/${TARGET_BUILD} && $(CC) $(LDFLAGS) $(CFLAGS) $(common_modules) $(extra_modules) $(REL) serial.rel  -o ${TARGET_BUILD}.hex
 
 install: output/${TARGET_BUILD} output/${TARGET_BUILD}/${TARGET_BUILD}.hex
 	sudo cc-tool -n ${TARGET_DEVICE} --log install.log -ew output/${TARGET_BUILD}/${TARGET_BUILD}.hex
-
-test: main.c output
-	gcc -g -o output/${TARGET_BUILD}/test -DNON_NATIVE_TEST main.c
 
 output:
 	mkdir output
