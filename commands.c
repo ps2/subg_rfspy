@@ -192,7 +192,6 @@ void cmd_led() {
   uint8_t mode;
   led = serial_rx_byte();
   mode = serial_rx_byte();
-  led_set_mode(led, mode);//0, 1, 2 = Off, On, Auto
   serial_tx_byte(RESPONSE_CODE_SUCCESS);
   serial_flush();
 }
@@ -253,6 +252,7 @@ CommandHandler __xdata handlers[] = {
 void do_cmd(uint8_t cmd) {
   if (cmd > 0 && cmd < sizeof(handlers)/sizeof(handlers[0])) {
     handlers[cmd]();
+	CLKCON = 0xAB;  	//command finished, we can slow down now; CLKSPD = 3Mhz, TICKSPD = 750Khz
   } else {
     while(serial_rx_avail() > 0) {
       serial_rx_byte();

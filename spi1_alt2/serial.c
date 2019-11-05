@@ -9,13 +9,13 @@
 #include "fifo.h"
 #include "timer.h"
 
-#define SPI_BUF_LEN 128
+#define SPI_BUF_LEN 64
 #define FLUSH_TIMEOUT_MS 5000
 
-static fifo_buffer __xdata input_buffer;
+static volatile fifo_buffer __xdata input_buffer;
 static volatile uint8_t __xdata input_buffer_mem[SPI_BUF_LEN];
 
-static fifo_buffer __xdata output_buffer;
+static volatile fifo_buffer __xdata output_buffer;
 static volatile uint8_t __xdata output_buffer_mem[SPI_BUF_LEN];
 
 volatile uint8_t ready_to_send = 0;
@@ -132,20 +132,21 @@ void rx1_isr(void) __interrupt URX1_VECTOR
       }
       if (xfer_size > 0) {
         spi_mode = SPI_MODE_XFER;
+		CLKCON =  0xA8;		//some command will be received soon, time to start moving faster; CLKSPD = 24Mhz, TICKSPD = 750Khz
       } else {
         spi_mode = SPI_MODE_IDLE;
       }
       break;
     case SPI_MODE_XFER:
-      if(xfer_size > 0) {
-        if (fifo_count(&input_buffer) < master_send_size) {
-          fifo_put(&input_buffer, value);
-          if (fifo_count(&input_buffer) == master_send_size) {
-            master_send_size = 0;
-            serial_data_available = 1;
-          }
-        }
-        xfer_size--;
+		if(xfer_size > 0) {	
+			if  ((uint8_t)(input_buffer.head - input_buffer.tail) < master_send_size)	{		 //fifo_count(&input_buffer) < master_send_size
+				input_buffer.buffer[input_buffer.head % input_buffer.buffer_len] = value; input_buffer.head++;							//fifo_put(&input_buffer, value)
+				if  ((uint8_t)(input_buffer.head - input_buffer.tail) == master_send_size) {		//(fifo_count(&input_buffer) == master_send_size)
+					master_send_size = 0;
+					serial_data_available = 1;
+				}
+			}
+			xfer_size--;
       }
       if (xfer_size == 0) {
         slave_send_size = 0;
@@ -160,14 +161,19 @@ void tx1_isr(void) __interrupt UTX1_VECTOR
   IRCON2 &= ~BIT2; // Clear UTX1IF
   if (spi_mode == SPI_MODE_IDLE) {
     if (ready_to_send) {
-      slave_send_size = fifo_count(&output_buffer);
+      slave_send_size = fifo_count(&output_buffer); //tell BLE how many bytes you want to send
       U1DBUF_write = slave_send_size;
     } else {
       U1DBUF_write = 0;
     }
   }
   else if (slave_send_size > 0) {
-    U1DBUF_write = fifo_get(&output_buffer);
+	  if (output_buffer.head != output_buffer.tail) { 	  //U1DBUF_write = fifo_get(&output_buffer);
+		  U1DBUF_write = output_buffer.buffer[output_buffer.tail % output_buffer.buffer_len];	
+		  output_buffer.tail++;
+	  }
+	  else U1DBUF_write = 0x00;	//nothing in buffer but still should have been something ...
+	  //start sending bytes to BLE, one per interrupt
   } else {
     // Filler for when we are receiving data, but not sending anything
     U1DBUF_write = 0x00;
