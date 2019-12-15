@@ -49,7 +49,7 @@ inline uint8_t fifo_peek(fifo_buffer const *b) {
     return 0;
 }
 
-inline bool fifo_put(fifo_buffer * b, uint8_t data_byte) {
+static bool fifo_put(fifo_buffer * b, uint8_t data_byte) {
     bool status = false;        /* return value */
 
     if (b) {
