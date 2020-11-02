@@ -325,7 +325,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
     feed_watchdog();
 
     // Waiting for isr to put radio bytes into radio_rx_buf
-    if (radio_rx_buf_write_idx > 0) {
+    if (radio_rx_buf_write_idx-radio_rx_buf_read_idx > 0) {
 
       d_byte = radio_rx_buf[radio_rx_buf_read_idx++];
 
