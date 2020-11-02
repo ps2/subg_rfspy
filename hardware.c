@@ -64,7 +64,6 @@ void led_set_diagnostic(LEDNumber led, LEDState state)
 
 uint8_t get_register(uint8_t addr) {
   uint8_t value;
-  addr = serial_rx_byte();
   switch(addr) {
     case 0x00:
       value = SYNC1;
