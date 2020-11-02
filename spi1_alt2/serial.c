@@ -6,20 +6,19 @@
 #include "serial.h"
 #include "radio.h"
 #include "statistics.h"
-#include "fifo.h"
 #include "timer.h"
 
 #define SPI_BUF_LEN 128
 #define FLUSH_TIMEOUT_MS 5000
 
-static fifo_buffer __xdata input_buffer;
-static volatile uint8_t __xdata input_buffer_mem[SPI_BUF_LEN];
+static volatile uint8_t input_buffer_read_idx = 0;
+static volatile uint8_t input_buffer_write_idx = 0;
+static uint8_t __xdata input_buffer_mem[SPI_BUF_LEN];
+static volatile uint8_t ready_to_send = 0;
 
-static fifo_buffer __xdata output_buffer;
-static volatile uint8_t __xdata output_buffer_mem[SPI_BUF_LEN];
-
-volatile uint8_t ready_to_send = 0;
-
+static volatile uint8_t output_buffer_read_idx = 0;
+static volatile uint8_t output_buffer_write_idx = 0;
+static uint8_t __xdata output_buffer_mem[SPI_BUF_LEN];
 volatile uint8_t serial_data_available;
 
 #define SPI_MODE_IDLE 0
@@ -93,10 +92,6 @@ void configure_serial()
   IEN2 |= BIT3;    // Enable UTX1IE interrupt
 
   U1DBUF_write = 0x44;
-
-  // Initialize fifos
-  fifo_init(&input_buffer, input_buffer_mem, SPI_BUF_LEN);
-  fifo_init(&output_buffer, output_buffer_mem, SPI_BUF_LEN);
 }
 
 void rx1_isr(void) __interrupt URX1_VECTOR
@@ -138,9 +133,9 @@ void rx1_isr(void) __interrupt URX1_VECTOR
       break;
     case SPI_MODE_XFER:
       if(xfer_size > 0) {
-        if (fifo_count(&input_buffer) < master_send_size) {
-          fifo_put(&input_buffer, value);
-          if (fifo_count(&input_buffer) == master_send_size) {
+        if (input_buffer_write_idx < master_send_size) {
+          input_buffer_mem[input_buffer_write_idx++] = value;
+          if (input_buffer_write_idx == master_send_size) {
             master_send_size = 0;
             serial_data_available = 1;
           }
@@ -160,14 +155,15 @@ void tx1_isr(void) __interrupt UTX1_VECTOR
   IRCON2 &= ~BIT2; // Clear UTX1IF
   if (spi_mode == SPI_MODE_IDLE) {
     if (ready_to_send) {
-      slave_send_size = fifo_count(&output_buffer);
+      slave_send_size = output_buffer_write_idx;
       U1DBUF_write = slave_send_size;
     } else {
       U1DBUF_write = 0;
     }
   }
   else if (slave_send_size > 0) {
-    U1DBUF_write = fifo_get(&output_buffer);
+    U1DBUF_write = output_buffer_mem[output_buffer_read_idx++];
+    slave_send_size--;
   } else {
     // Filler for when we are receiving data, but not sending anything
     U1DBUF_write = 0x00;
@@ -176,7 +172,7 @@ void tx1_isr(void) __interrupt UTX1_VECTOR
 
 uint8_t serial_rx_avail()
 {
-  return fifo_count(&input_buffer);
+  return input_buffer_write_idx;
 }
 
 uint8_t serial_rx_byte()
@@ -187,9 +183,10 @@ uint8_t serial_rx_byte()
       feed_watchdog();
     }
   }
-  s_data = fifo_get(&input_buffer);
-  if (fifo_empty(&input_buffer)) {
+  s_data = input_buffer_mem[input_buffer_read_idx++];
+  if (input_buffer_read_idx == input_buffer_write_idx) {
     serial_data_available = 0;
+    input_buffer_read_idx = input_buffer_write_idx = 0;
   }
   return s_data;
 }
@@ -206,40 +203,46 @@ uint32_t serial_rx_long()
 
 void serial_tx_byte(uint8_t tx_byte)
 {
-  fifo_put(&output_buffer, tx_byte);
+  output_buffer_mem[output_buffer_write_idx++] = tx_byte;
 }
 
 void serial_tx_word(uint16_t tx_word)
 {
-  fifo_put(&output_buffer, tx_word >> 8);
-  fifo_put(&output_buffer, tx_word & 0xff);
+  serial_tx_byte(tx_word >> 8);
+  serial_tx_byte(tx_word & 0xff);
 }
 
 void serial_tx_long(uint32_t tx_long)
 {
-  fifo_put(&output_buffer, tx_long >> 24);
-  fifo_put(&output_buffer, (tx_long >> 16) & 0xff);
-  fifo_put(&output_buffer, (tx_long >> 8) & 0xff);
-  fifo_put(&output_buffer, tx_long & 0xff);
+  serial_tx_byte(tx_long >> 24);
+  serial_tx_byte((tx_long >> 16) & 0xff);
+  serial_tx_byte((tx_long >> 8) & 0xff);
+  serial_tx_byte(tx_long & 0xff);
 }
 
 void serial_flush()
 {
   uint32_t start_time;
 
-  if (fifo_empty(&output_buffer)) {
+  if (output_buffer_write_idx == 0) {
     return;
   }
 
-  // Waiting for tx isr to ask for data
+  RESPONSE_AVAILABLE_SIGNAL_PIN = 1;
+
+  // Waiting for tx isr to send the data
   read_timer(&start_time);
   ready_to_send = 1;
-  while(!fifo_empty(&output_buffer) && !subg_rfspy_should_exit) {
+  while((output_buffer_read_idx != output_buffer_write_idx) && !subg_rfspy_should_exit) {
     feed_watchdog();
     if (check_elapsed(start_time, FLUSH_TIMEOUT_MS)) {
       break;
     }
   }
+
+  output_buffer_read_idx = output_buffer_write_idx = 0;
+
+  RESPONSE_AVAILABLE_SIGNAL_PIN = 0;
 
   // Waiting to finish spi transfer
   while(slave_send_size != 0 && !subg_rfspy_should_exit) {

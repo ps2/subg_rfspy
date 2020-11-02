@@ -15,6 +15,14 @@ It's also possible to build it under Windows. The best way to do this is to:
 
 To install, you'll need [cc-tool](https://github.com/dashesy/cc-tool)
 
+## Mac setup
+1. `brew install sdcc`
+2. `brew install automake`
+3. Get cc-tool source (mentioned above) and cd into the source directory
+4. `./bootstrap`
+5. `./configure`
+6. `make install`
+
 # Building and Installing
 
 ```

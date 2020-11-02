@@ -23,6 +23,8 @@ void subg_rfspy_main() {
 
   init_leds();
 
+  RESPONSE_AVAILABLE_SIGNAL_PIN = 0;
+
   // Global interrupt enable
   init_timer();
   EA = 1;
