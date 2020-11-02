@@ -172,7 +172,12 @@ void tx1_isr(void) __interrupt UTX1_VECTOR
 
 uint8_t serial_rx_avail()
 {
-  return input_buffer_write_idx;
+  int remaining = input_buffer_write_idx - input_buffer_read_idx;
+  if (remaining > 0) {
+    return (uint8_t) remaining;
+  } else {
+    return 0;
+  }
 }
 
 uint8_t serial_rx_byte()

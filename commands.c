@@ -221,7 +221,7 @@ void cmd_get_statistics()
   read_timer(&uptime_ms);
   serial_tx_long(uptime_ms);
   serial_tx_word(radio_rx_overflow_count);
-  serial_tx_word(radio_rx_fifo_overflow_count);
+  serial_tx_word(radio_rx_buf_overflow_count);
   serial_tx_word(packet_rx_count);
   serial_tx_word(packet_tx_count);
   serial_tx_word(crc_failure_count);

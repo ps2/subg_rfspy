@@ -23,11 +23,14 @@
 #ifdef RILEYLINK
 
 #define HARDWARE_FLOW_CONTROL_CONFIG 0xc0; /* 8N1, hw flow control, high stop bit */
-#define HARDWARE_LED_INIT P0DIR |= BIT0|BIT1|BIT2; // Set P0 0,1,2 as outputs
+#define HARDWARE_LED_INIT P0DIR |= BIT0|BIT1|BIT2|BIT3|BIT4|BIT5; // Set P0 0,1,2 as outputs
 #define GREEN_LED_PIN P0_0
 #define BLUE_LED_PIN P0_1
 #define SYSTEM_CLOCK_MHZ 24
 #define RESPONSE_AVAILABLE_SIGNAL_PIN P0_2
+#define DEBUG_PIN1 P0_3
+#define DEBUG_PIN2 P0_4
+#define DEBUG_PIN3 P0_5
 
 #elif EDISON_EXPLORER
 

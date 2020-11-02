@@ -6,15 +6,16 @@
 #include "commands.h"
 #include "timer.h"
 #include "encoding.h"
-#include "fifo.h"
 #include "statistics.h"
 #include "radio.h"
 
-#define RX_FIFO_SIZE 32
+#define RX_BUF_SIZE 255
 #define TX_BUF_SIZE 255
 
-static volatile uint8_t __xdata radio_rx_buf[RX_FIFO_SIZE];
-static fifo_buffer __xdata rx_fifo;
+static volatile uint8_t radio_rx_buf_read_idx = 0;
+static volatile uint8_t radio_rx_buf_write_idx = 0;
+static uint8_t __xdata radio_rx_buf[RX_BUF_SIZE];
+
 static volatile uint8_t rx_len;
 
 static volatile uint8_t __xdata radio_tx_buf[TX_BUF_SIZE];
@@ -96,8 +97,6 @@ void configure_radio()
 
   IEN2 |= IEN2_RFIE;
   RFTXRXIE = 1;
-
-  fifo_init(&rx_fifo, radio_rx_buf, RX_FIFO_SIZE);
 }
 
 // Set software based encoding
@@ -111,8 +110,10 @@ bool set_encoding_type(EncodingType new_type) {
 }
 
 inline void put_rx(uint8_t data) {
-  if (!fifo_put(&rx_fifo, data)) {
-    radio_rx_fifo_overflow_count++;
+  if (radio_rx_buf_write_idx < RX_BUF_SIZE) {
+    radio_rx_buf[radio_rx_buf_write_idx++] = data;
+  } else {
+    radio_rx_buf_overflow_count++;
   }
 }
 
@@ -293,7 +294,6 @@ void send_from_tx_buf(uint8_t channel, uint16_t preamble_extend_ms) {
 
 uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uint8_t use_pktlen) {
 
-  uint8_t read_idx = 0;
   uint8_t d_byte = 0;
   uint8_t rval = 0;
   uint8_t encoding_error = 0;
@@ -316,7 +316,6 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
   CHANNR = channel;
 
   rx_len = 0;
-  memset((void*)radio_rx_buf, 0x11, RX_FIFO_SIZE);
 
   RFST = RFST_SRX;
   while(MARCSTATE!=MARC_STATE_RX);
@@ -325,19 +324,18 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
 
     feed_watchdog();
 
-    // Waiting for isr to put radio bytes into rx_fifo
-    if (!fifo_empty(&rx_fifo)) {
+    // Waiting for isr to put radio bytes into radio_rx_buf
+    if (radio_rx_buf_write_idx > 0) {
 
-      d_byte = fifo_get(&rx_fifo);
-      read_idx++;
+      d_byte = radio_rx_buf[radio_rx_buf_read_idx++];
 
       // Send status code
-      if (read_idx == 1) {
+      if (radio_rx_buf_read_idx == 1) {
         led_set_diagnostic(BlueLED, LEDStateOn);
         serial_tx_byte(RESPONSE_CODE_SUCCESS);
       }
       // First two bytes are rssi and packet #
-      if (read_idx < 3) {
+      if (radio_rx_buf_read_idx < 3) {
         serial_tx_byte(d_byte);
       } else {
         encoding_error = decoder.add_encoded_byte(&decoder_state, d_byte);
@@ -352,7 +350,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
       }
 
       // Check for end of packet
-      if (use_pktlen && read_idx == PKTLEN) {
+      if (use_pktlen && radio_rx_buf_read_idx == PKTLEN) {
         break;
       }
     }
@@ -375,9 +373,7 @@ uint8_t get_packet_and_write_to_serial(uint8_t channel, uint32_t timeout_ms, uin
   RFST = RFST_SIDLE;
   while(MARCSTATE!=MARC_STATE_IDLE);
 
-  while(!fifo_empty(&rx_fifo)) {
-    fifo_get(&rx_fifo);
-  }
+  radio_rx_buf_read_idx = radio_rx_buf_write_idx = 0;
 
   if (rval == 0) {
     packet_rx_count++;

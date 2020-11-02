@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 volatile extern uint16_t radio_rx_overflow_count;
-volatile extern uint16_t radio_rx_fifo_overflow_count;
+volatile extern uint16_t radio_rx_buf_overflow_count;
 volatile extern uint16_t serial_rx_overflow_count;
 extern uint16_t packet_tx_count;
 extern uint16_t packet_rx_count;

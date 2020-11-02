@@ -25,6 +25,10 @@ void subg_rfspy_main() {
 
   RESPONSE_AVAILABLE_SIGNAL_PIN = 0;
 
+  DEBUG_PIN1 = 0;
+  DEBUG_PIN2 = 0;
+  DEBUG_PIN3 = 0;
+
   // Global interrupt enable
   init_timer();
   EA = 1;
