@@ -19,6 +19,10 @@
 
 extern volatile uint8_t P0_0;
 extern volatile uint8_t P0_1;
+extern volatile uint8_t P0_2;
+extern volatile uint8_t P0_3;
+extern volatile uint8_t P0_4;
+extern volatile uint8_t P0_5;
 extern volatile uint8_t P0DIR;
 extern volatile uint8_t P1DIR;
 extern volatile uint8_t P1SEL;
@@ -95,6 +99,11 @@ extern volatile uint8_t U1DBUF_read;
 #define BLUE_LED_PIN P0_1
 #define SYSTEM_CLOCK_MHZ 24
 #define HARDWARE_LED_INIT P0DIR |= BIT0|BIT1;
+
+#define RESPONSE_AVAILABLE_SIGNAL_PIN P0_2
+#define DEBUG_PIN1 P0_3
+#define DEBUG_PIN2 P0_4
+#define DEBUG_PIN3 P0_5
 
 void *run_tests(void *vargp);
 void *run_mock_hardware(void *vargp);

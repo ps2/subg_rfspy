@@ -21,13 +21,7 @@ void subg_rfspy_main() {
   while (CLKCON & CLKCON_OSC);
   SLEEP |= SLEEP_OSC_PD;
 
-  init_leds();
-
-  RESPONSE_AVAILABLE_SIGNAL_PIN = 0;
-
-  DEBUG_PIN1 = 0;
-  DEBUG_PIN2 = 0;
-  DEBUG_PIN3 = 0;
+  init_gpios();
 
   // Global interrupt enable
   init_timer();

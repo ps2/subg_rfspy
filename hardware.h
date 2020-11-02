@@ -97,7 +97,7 @@ typedef enum LEDState {
 	LEDStateOn = 0x01
 } LEDState;
 
-void init_leds();
+void init_gpios();
 void led_set_mode(LEDNumber led, LEDMode new_mode);
 void led_set_diagnostic(LEDNumber led, LEDState state);
 

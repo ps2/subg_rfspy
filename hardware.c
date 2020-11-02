@@ -13,7 +13,7 @@ static LEDMode blue_mode = 0;
 mode_registers __xdata tx_registers;
 mode_registers __xdata rx_registers;
 
-void init_leds() {
+void init_gpios() {
 	// init LEDS
 	HARDWARE_LED_INIT;       // see hardware.h
 	GREEN_LED_PIN = 0;
@@ -21,8 +21,12 @@ void init_leds() {
 
   led_set_mode(GreenLED, LEDModeOff);
   led_set_mode(BlueLED, LEDModeOff);
-}
 
+	RESPONSE_AVAILABLE_SIGNAL_PIN = 0;
+	DEBUG_PIN1 = 0;
+	DEBUG_PIN2 = 0;
+	DEBUG_PIN3 = 0;
+}
 
 void led_set_mode(LEDNumber led, LEDMode new_mode)
 {

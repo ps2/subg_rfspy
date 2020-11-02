@@ -8,6 +8,10 @@
 
 volatile uint8_t P0_0;
 volatile uint8_t P0_1;
+volatile uint8_t P0_2;
+volatile uint8_t P0_3;
+volatile uint8_t P0_4;
+volatile uint8_t P0_5;
 volatile uint8_t P0DIR;
 volatile uint8_t P1DIR;
 volatile uint8_t P1SEL;
